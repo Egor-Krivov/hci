@@ -1,1 +1,1 @@
-from .datalink import DataLinkTransmitter, DataLinkReceiver
+from .namedpipe import PipeReceiver, PipeTransmitter
