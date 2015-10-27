@@ -21,7 +21,7 @@ class DataLinkTransmitter(metaclass=ABCMeta):
         return
 
     @abstractmethod
-    def send(self, bytes):
+    def send(self, byte_data):
         """Send bytes via data link."""
         return
 
@@ -31,16 +31,14 @@ class DataLinkReceiver(metaclass=ABCMeta):
     @take_docs(DataLinkTransmitter.__enter__)
     @abstractmethod
     def __enter__(self):
-        """Initialization process."""
         return
 
     @take_docs(DataLinkTransmitter.__exit__)
     @abstractmethod
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Close process."""
         return
 
     @abstractmethod
-    def receive(self, bytes):
+    def receive(self, byte_size):
         """Receive bytes via data link."""
         return
