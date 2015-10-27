@@ -7,7 +7,7 @@ class PipeTransmitter(DataLinkTransmitter):
     """
 
     """
-    def __init__(self, **settings):
+    def __init__(self, settings):
         self.pname = settings['datalink'].pop('pname', '/tmp/namedpipe.fifo')
 
     def __enter__(self):
@@ -53,7 +53,7 @@ class PipeReceiver(DataLinkReceiver):
     """
 
     """
-    def __init__(self, **settings):
+    def __init__(self, settings):
         self.pname = settings['datalink'].pop('pname', '/tmp/namedpipe.fifo')
 
     def __enter__(self):
