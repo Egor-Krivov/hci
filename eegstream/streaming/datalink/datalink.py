@@ -1,11 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
-
-def take_docs(other_func):
-    def dec(func):
-        func.__doc__ = other_func.__doc__
-        return func
-    return dec
+from eegstream.utils import grab_docs_from
 
 
 class DataLinkTransmitter(metaclass=ABCMeta):
@@ -28,12 +23,12 @@ class DataLinkTransmitter(metaclass=ABCMeta):
 
 class DataLinkReceiver(metaclass=ABCMeta):
     """Class, supporting bytes receiving via some data link."""
-    @take_docs(DataLinkTransmitter.__enter__)
+    @grab_docs_from(DataLinkTransmitter.__enter__)
     @abstractmethod
     def __enter__(self):
         return
 
-    @take_docs(DataLinkTransmitter.__exit__)
+    @grab_docs_from(DataLinkTransmitter.__exit__)
     @abstractmethod
     def __exit__(self, exc_type, exc_val, exc_tb):
         return
