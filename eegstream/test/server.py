@@ -31,13 +31,13 @@ with datalink.FifoTransmitter(settings) as fifo_t:
 
     for data, fmt in gen_data():
         # sleep timeout
-        time.sleep(0.01)
+        time.sleep(0.001)
         # pack data to bytes object
         b_data = struct.pack(fmt, *(data.tolist()))
         # send bytes object
         b_data_size = fifo_t.send(b_data)
 
-        if b_data_size is None:
+        if b_data_size == 0:
             continue
 
         # number of bytes actually written
@@ -50,5 +50,5 @@ with datalink.FifoTransmitter(settings) as fifo_t:
             if b_data_size % (4*INTEGER_SIZE) == 0:
                 print(struct.unpack(fmt, b_data), file=sys.stderr)
             else:
-                print('Unexpexted error with PIPE_BUF', file=sys.stderr)
+                print('Unexpected error with PIPE_BUF', file=sys.stderr)
                 time.sleep(1)
