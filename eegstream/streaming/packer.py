@@ -3,6 +3,9 @@ import struct
 from .datalink import FifoTransmitter, FifoReceiver
 
 
+class _PackerBase:
+
+
 class PacketTransmitter:
     """Class sends tuplet with basic python types via given data link.
 
@@ -13,10 +16,10 @@ class PacketTransmitter:
         settings['packet'] field and push everything else deeper.
         This class requires:
             fmt: string
-                setting, describing data in tuplet.
+                Setting, describing data in tuplet.
             data_link_type: str
                 Data link type, one of the following:
-                    'pipe': will use named pipe.
+                'pipe': will use named pipe.
 
     """
     def __init__(self, settings):
@@ -43,12 +46,19 @@ class PacketTransmitter:
         return self.data_link_transmitter.__exit__(exc_type, exc_val, exc_tb)
 
     def send(self, packet):
-        """Send packet
+        """Send packet.
 
         Parameters
         ----------
-        packets : iterable
-            Iterable with tuplet organized according to fmt settings
+        packet : iterable
+            Iterable with data organized according to fmt settings
+
+        Raises
+        ------
+        exception.BrokenPipeError
+            Raises when pipe is broken. For example, when there is no one on
+            the reading side
+
         """
         raw_packet = struct.pack(self.fmt, *packet)
         return self.data_link_transmitter.send(raw_packet)
@@ -67,7 +77,7 @@ class PacketReceiver:
                 setting, describing data in tuplets.
             data_link_type: str
                 Data link type, one of the following:
-                    'pipe': will use named pipe.
+                'pipe': will use named pipe.
 
     """
     def __init__(self, settings):
@@ -105,6 +115,7 @@ class PacketReceiver:
         -------
         packets : list
             packets with data in given form fmt
+
         """
         raw_data = self.data_link_receiver.receive(
             packet_count * self.packet_size)
@@ -113,7 +124,7 @@ class PacketReceiver:
         assert reminder == 0, 'Incomplete number of bytes were found in data' \
                               ' link layer reminder is {}'.format(reminder)
 
-        raw_data = [raw_data[i * self.packet_size: (i + 1) * self.packet_size]
+        raw_data = [raw_data[i * self.packet_size:(i + 1) * self.packet_size]
                     for i in range(packet_count)]
         packets = [struct.unpack(self.fmt, raw_packet)
                    for raw_packet in raw_data]
