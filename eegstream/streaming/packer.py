@@ -1,6 +1,6 @@
 import struct
 
-from .datalink import PipeTransmitter, PipeReceiver
+from .datalink import FifoTransmitter, FifoReceiver
 
 
 class PacketTransmitter:
@@ -30,7 +30,7 @@ class PacketTransmitter:
 
     def __enter__(self):
         if self.data_link_type == 'pipe':
-            self.data_link_transmitter = PipeTransmitter(self.deeper_settings)
+            self.data_link_transmitter = FifoTransmitter(self.deeper_settings)
         else:
             raise ValueError('Unknown data_link_type {}'.format(
                 self.data_link_type
@@ -81,7 +81,7 @@ class PacketReceiver:
 
     def __enter__(self):
         if self.data_link_type == 'pipe':
-            self.data_link_receiver = PipeReceiver(self.deeper_settings)
+            self.data_link_receiver = FifoReceiver(self.deeper_settings)
         else:
             raise ValueError('Unknown data_link_type {}'.format(
                 self.data_link_type

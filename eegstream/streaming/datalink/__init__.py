@@ -1,1 +1,1 @@
-from .namedpipe import PipeReceiver, PipeTransmitter
+from .fifo import FifoReceiver, FifoTransmitter
