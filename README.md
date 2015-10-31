@@ -2,7 +2,7 @@
 
 Structure settings format:
 ```
-settings = {'packet': {'fmt': fmt, 'mask': mask}, 'datalink': {'type': type, 'file': file}}
+{'packet': {'fmt': fmt, 'mask': mask, 'type': type}, 'datalink': {'file': file}}
 ```
 where:
 - `fmt` describes single packet in format useful for `struct.pack` call (ex.: `'dddd'` four channels in double format each)
