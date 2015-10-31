@@ -1,7 +1,10 @@
-import json
-from eegstream.streaming import PacketTransmitter, PacketReceiver
+from os.path import dirname
+
+from eegstream.streaming import PacketReceiver
+from eegstream.utils import load_settings
+
 
 class Worker(PacketReceiver):
     def __init__(self):
-        device___loader__.fullname
-        super().__init__()
+        settings = load_settings(dirname(__file__))
+        super().__init__(settings)
