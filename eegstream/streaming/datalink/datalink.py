@@ -6,11 +6,6 @@ class DatalinkBase(metaclass=ABCMeta):
 
     """
     @abstractmethod
-    def __init__(self, settings):
-        """Init class instance with `settings` parameter."""
-        pass
-
-    @abstractmethod
     def __enter__(self):
         """Initialization process."""
         pass

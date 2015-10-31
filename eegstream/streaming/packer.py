@@ -58,9 +58,10 @@ class PacketTransmitter(PacketBase):
                 'pipe': will use named pipe.
 
     """
+    @property
     def datalink_class(self):
         if self.datalink_type == 'pipe':
-            self.datalink_class = FifoTransmitter
+            return FifoTransmitter
         else:
             raise ValueError('Unknown datalink type {}'.
                              format(self.datalink_type))
@@ -101,9 +102,10 @@ class PacketReceiver(PacketBase):
                 'pipe': will use named pipe.
 
     """
+    @property
     def datalink_class(self):
         if self.datalink_type == 'pipe':
-            self.datalink_class = FifoReceiver
+            return FifoReceiver
         else:
             raise ValueError('Unknown datalink type {}'.
                              format(self.datalink_type))
@@ -127,8 +129,9 @@ class PacketReceiver(PacketBase):
         # Calculate packet count and reminder.
         packet_count, reminder = divmod(len(raw_data), self.packet_size)
 
-        assert reminder == 0, 'Incomplete number of bytes were found in data.\n' \
-                              'Link layer reminder is {}'.format(reminder)
+        assert reminder == 0, ('Incomplete number of bytes were found in data.\n'
+                               'Got {} packets and remider is {}'.
+                               format(packet_count, reminder))
 
         raw_data = [raw_data[i * self.packet_size:(i + 1) * self.packet_size]
                     for i in range(packet_count)]

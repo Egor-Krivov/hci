@@ -9,7 +9,7 @@ from eegstream.streaming import datalink
 
 INTEGER_SIZE = 4  # integer size
 MAX_NUM_OF_INTEGERS = 12  # max number of integers to receive
-settings = {'data_link': {}}  # settings dictionary
+settings = {'datalink': {}}  # settings dictionary
 
 
 def gen_data(low=10, high=100, size=4):

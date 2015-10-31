@@ -20,7 +20,7 @@ class FifoTransmitter(DatalinkTransmitter):
 
     """
     def __init__(self, settings):
-        self.fname = settings['data_link'].pop('fname', '/tmp/fifo')
+        self.fname = settings['datalink'].pop('file', '/tmp/fifo')
 
     def __enter__(self):
         attempts = 60
@@ -94,7 +94,7 @@ class FifoReceiver(DatalinkReceiver):
 
     """
     def __init__(self, settings):
-        self.fname = settings['data_link'].pop('fname', '/tmp/fifo')
+        self.fname = settings['datalink'].pop('file', '/tmp/fifo')
         # If started getting bytes from the writing side
         self.streaming = False
 

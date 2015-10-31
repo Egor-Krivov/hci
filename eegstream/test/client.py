@@ -7,7 +7,7 @@ from eegstream.streaming import datalink
 
 INTEGER_SIZE = 4  # integer size
 MAX_NUM_OF_INTEGERS = 2**16 // INTEGER_SIZE  # max number of integers to receive
-settings = {'data_link': {}}  # settings dictionary
+settings = {'datalink': {}}  # settings dictionary
 
 with datalink.FifoReceiver(settings) as fifo_r:
 
