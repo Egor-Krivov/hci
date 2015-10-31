@@ -17,6 +17,8 @@ class PacketBase(metaclass=ABCMeta):
         self.deeper_settings = settings
 
         if not self.settings:
+            # Happens, when settings, passed to the packer were incorrect
+            # and doesn't content settings for packer at all.
             raise ValueError('Failed to unpack packet settings')
 
         # Unpack useful settings.
@@ -63,6 +65,7 @@ class PacketTransmitter(PacketBase):
         if self.datalink_type == 'pipe':
             return FifoTransmitter
         else:
+            # Packer couldn't understand datalink type, provided in settings
             raise ValueError('Unknown datalink type {}'.
                              format(self.datalink_type))
 
@@ -107,6 +110,7 @@ class PacketReceiver(PacketBase):
         if self.datalink_type == 'pipe':
             return FifoReceiver
         else:
+            # Packer couldn't understand datalink type, provided in settings
             raise ValueError('Unknown datalink type {}'.
                              format(self.datalink_type))
 
@@ -129,6 +133,7 @@ class PacketReceiver(PacketBase):
         # Calculate packet count and reminder.
         packet_count, reminder = divmod(len(raw_data), self.packet_size)
 
+        # This shouldn't happen at all, currently (with pipe)
         assert reminder == 0, ('Incomplete number of bytes were found in data.\n'
                                'Got {} packets and remider is {}'.
                                format(packet_count, reminder))
