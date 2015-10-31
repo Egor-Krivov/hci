@@ -1,6 +1,6 @@
 {
     "packet": {
-        "format": "11d4i",
+        "format": "8d",
         "datalink_type": "pipe"
     },
     "datalink": {

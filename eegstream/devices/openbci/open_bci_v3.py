@@ -80,7 +80,7 @@ class OpenBCIBoard(object):
 
         time.sleep(2)
         # Initialize 32-bit board, doesn't affect 8bit board
-        self.ser.write('v');
+        self.ser.write(b'v');
 
 
         # wait for device to be ready
@@ -130,7 +130,7 @@ class OpenBCIBoard(object):
               OpenBCISample object captured.
         """
         if not self.streaming:
-            self.ser.write('b')
+            self.ser.write(b'b')
             self.streaming = True
 
         start_time = timeit.default_timer()
@@ -186,13 +186,16 @@ class OpenBCIBoard(object):
             if not b:
                 self.warn('Device appears to be stalled. Quitting...')
                 sys.exit()
+                # If couldn't quit
                 raise Exception('Device Stalled')
+                # Just in case
                 sys.exit()
-                return '\xFF'
+                # In emergency
+                return b'\xFF'
             else:
                 return b
 
-        for rep in xrange(max_bytes_to_skip):
+        for rep in range(max_bytes_to_skip):
 
             # ---------Start Byte & ID---------
             if self.read_state == 0:
@@ -200,18 +203,19 @@ class OpenBCIBoard(object):
                 b = read(1)
 
                 if struct.unpack('B', b)[0] == START_BYTE:
-                    if (rep != 0):
+                    if rep != 0:
                         self.warn('Skipped %d bytes before start found' % (rep))
-                        rep = 0;
+                        # Useless
+                        rep = 0
                     packet_id = struct.unpack('B', read(1))[0]  # packet id goes from 0-255
-                    log_bytes_in = str(packet_id);
+                    log_bytes_in = str(packet_id)
 
                     self.read_state = 1
 
             # ---------Channel Data---------
             elif self.read_state == 1:
                 channel_data = []
-                for c in xrange(self.eeg_channels_per_sample):
+                for c in range(self.eeg_channels_per_sample):
 
                     # 3 byte ints
                     literal_read = read(3)
@@ -221,11 +225,11 @@ class OpenBCIBoard(object):
 
                     # 3byte int in 2s compliment
                     if (unpacked[0] >= 127):
-                        pre_fix = '\xFF'
+                        pre_fix = b'\xFF'
                     else:
-                        pre_fix = '\x00'
+                        pre_fix = b'\x00'
 
-                    literal_read = pre_fix + literal_read;
+                    literal_read = pre_fix + literal_read
 
                     # unpack little endian(>) signed integer(i) (makes unpacking platform independent)
                     myInt = struct.unpack('>i', literal_read)[0]
@@ -240,11 +244,11 @@ class OpenBCIBoard(object):
             # ---------Accelerometer Data---------
             elif self.read_state == 2:
                 aux_data = []
-                for a in xrange(self.aux_channels_per_sample):
+                for a in range(self.aux_channels_per_sample):
 
                     # short = h
                     acc = struct.unpack('>h', read(2))[0]
-                    log_bytes_in = log_bytes_in + '|' + str(acc);
+                    log_bytes_in = log_bytes_in + '|' + str(acc)
 
                     if self.scaling_output:
                         aux_data.append(acc * scale_fac_accel_G_per_count)
@@ -255,16 +259,16 @@ class OpenBCIBoard(object):
             # ---------End Byte---------
             elif self.read_state == 3:
                 val = struct.unpack('B', read(1))[0]
-                log_bytes_in = log_bytes_in + '|' + str(val);
+                log_bytes_in = log_bytes_in + '|' + str(val)
                 self.read_state = 0  # read next packet
-                if (val == END_BYTE):
+                if val == END_BYTE:
                     sample = OpenBCISample(packet_id, channel_data, aux_data)
                     self.packets_dropped = 0
                     return sample
                 else:
                     self.warn("ID:<%d> <Unexpected END_BYTE found <%s> instead of <%s>"
                               % (packet_id, val, END_BYTE))
-                    logging.debug(log_bytes_in);
+                    logging.debug(log_bytes_in)
                     self.packets_dropped = self.packets_dropped + 1
 
     """
@@ -276,7 +280,7 @@ class OpenBCIBoard(object):
     def stop(self):
         print("Stopping streaming...\nWait for buffer to flush...")
         self.streaming = False
-        self.ser.write('s')
+        self.ser.write(b's')
         if self.log:
             logging.warning('sent <s>: stopped streaming')
 
@@ -315,10 +319,10 @@ class OpenBCIBoard(object):
         time.sleep(1)
 
         if self.ser.inWaiting():
-            line = ''
-            c = ''
+            line = b''
+            c = b''
             # Look for end sequence $$$
-            while '$$$' not in line:
+            while b'$$$' not in line:
                 c = self.ser.read()
                 line += c
             print(line);
@@ -326,14 +330,14 @@ class OpenBCIBoard(object):
             self.warn("No Message")
 
     def print_register_settings(self):
-        self.ser.write('?')
+        self.ser.write(b'?')
         time.sleep(0.5)
         print_incoming_text();
 
     # DEBBUGING: Prints individual incoming bytes
     def print_bytes_in(self):
         if not self.streaming:
-            self.ser.write('b')
+            self.ser.write(b'b')
             self.streaming = True
         while self.streaming:
             print(struct.unpack('B', self.ser.read())[0]);
@@ -344,9 +348,9 @@ class OpenBCIBoard(object):
 
     def print_packets_in(self):
         if not self.streaming:
-            self.ser.write('b')
+            self.ser.write(b'b')
             self.streaming = True
-            skipped_str = ''
+            skipped_str = b''
         while self.streaming:
             b = struct.unpack('B', self.ser.read())[0];
 
@@ -361,7 +365,7 @@ class OpenBCIBoard(object):
                 packet_str = packet_str + "%03d" % (b) + '|';
 
                 # data channels
-                for i in xrange(24 - 1):
+                for i in range(24 - 1):
                     b = struct.unpack('B', self.ser.read())[0];
                     packet_str = packet_str + '.' + "%03d" % (b);
 
@@ -369,7 +373,7 @@ class OpenBCIBoard(object):
                 packet_str = packet_str + '.' + "%03d" % (b) + '|';
 
                 # aux channels
-                for i in xrange(6 - 1):
+                for i in range(6 - 1):
                     b = struct.unpack('B', self.ser.read())[0];
                     packet_str = packet_str + '.' + "%03d" % (b);
 
