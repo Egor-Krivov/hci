@@ -24,7 +24,7 @@ class _PackerBase(metaclass=ABCMeta):
         return self.data_link.__exit__(exc_type, exc_val, exc_tb)
 
 
-class PacketTransmitter:
+class PacketTransmitter(_PackerBase):
     """Class sends tuplet with basic python types via given data link.
 
     Parameters
@@ -67,7 +67,7 @@ class PacketTransmitter:
         return self.data_link.send(raw_packet)
 
 
-class PacketReceiver:
+class PacketReceiver(_PackerBase):
     """Class receives tuplets with basic python types via given data link.
 
     Parameters
