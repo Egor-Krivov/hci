@@ -3,10 +3,10 @@ import os
 import sys
 import time
 
-from .datalink import DataLinkTransmitter, DataLinkReceiver
+from .datalink import DatalinkTransmitter, DatalinkReceiver
 
 
-class FifoTransmitter(DataLinkTransmitter):
+class FifoTransmitter(DatalinkTransmitter):
     """FIFO transmitter connects only after read fd was opened.
 
     Parameters
@@ -61,7 +61,6 @@ class FifoTransmitter(DataLinkTransmitter):
             Raises when pipe is broken. For example, when there is no one on
             the reading side
 
-
         """
         # Suppress error when fifo opened, but there is no room to write data
         # in the fifo (exception EAGAIN or EWOULDBLOCK). This exception raises
@@ -86,7 +85,7 @@ class FifoTransmitter(DataLinkTransmitter):
         return b_data_size
 
 
-class FifoReceiver(DataLinkReceiver):
+class FifoReceiver(DatalinkReceiver):
     """FIFO receiver class.
 
     Parameters
