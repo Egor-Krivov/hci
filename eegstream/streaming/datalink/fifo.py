@@ -15,31 +15,32 @@ class FifoTransmitter(DatalinkTransmitter):
 
     Attributes
     ----------
-    fname : str
+    file : str
     fifo_fd : int
 
     """
     def __init__(self, settings):
-        self.fname = settings['datalink'].pop('file', '/tmp/fifo')
+        self.file = settings['datalink'].pop('file', '/tmp/fifo')
 
     def __enter__(self):
         attempts = 60
         for attempt_count in range(attempts):
-            # Create descriptor for the fifo file
+            # Create descriptor for the fifo file.
             try:
-                self.fifo_fd = os.open(self.fname, os.O_WRONLY | os.O_NONBLOCK)
+                self.fifo_fd = os.open(self.file, os.O_WRONLY | os.O_NONBLOCK)
                 break
-            # This happens when no one has opened pipe for reading
+            # This happens when no one has opened fifo for reading.
             except FileNotFoundError:
                 print('Failed to find receiver...', file=sys.stderr)
                 time.sleep(1)
         else:
+            # After attempts delay raises the receiver not found exception.
             raise FileNotFoundError('Failed to find receiver.')
 
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        # close the fifo file
+        # Close the fifo file.
         os.close(self.fifo_fd)
 
     def send(self, b_data):
@@ -94,8 +95,8 @@ class FifoReceiver(DatalinkReceiver):
 
     """
     def __init__(self, settings):
-        self.fname = settings['datalink'].pop('file', '/tmp/fifo')
-        # If started getting bytes from the writing side
+        self.file = settings['datalink'].pop('file', '/tmp/fifo')
+        # If started getting bytes from the writing side.
         self.streaming = False
 
     def __enter__(self):
@@ -110,16 +111,16 @@ class FifoReceiver(DatalinkReceiver):
             Raises when couldn't open fifo file.
 
         """
-        # Create the fifo file
+        # Create the fifo file.
         try:
-            os.mkfifo(self.fname)
+            os.mkfifo(self.file)
         except FileExistsError as fee:
             print('Failed to create FIFO: {}'.format(fee), file=sys.stderr)
             raise
 
-        # Create descriptor for the fifo file
+        # Create descriptor for the fifo file.
         try:
-            self.fifo_fd = os.open(self.fname, os.O_RDONLY | os.O_NONBLOCK)
+            self.fifo_fd = os.open(self.file, os.O_RDONLY | os.O_NONBLOCK)
         except FileNotFoundError as fnfe:
             print('Failed to open FIFO: {}'.format(fnfe), file=sys.stderr)
             raise
@@ -127,12 +128,12 @@ class FifoReceiver(DatalinkReceiver):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        # close the fifo file
+        # Close the fifo file.
         os.close(self.fifo_fd)
 
-        # delete the fifo file
+        # Delete the fifo file.
         try:
-            os.unlink(self.fname)
+            os.unlink(self.file)
         except OSError as ose:
             print('Failed to delete FIFO: {}'.format(ose), file=sys.stderr)
 
@@ -149,9 +150,9 @@ class FifoReceiver(DatalinkReceiver):
         b_data : bytes object | None
 
         """
-        # suppress error when fifo opened, but there is no data to read from
+        # Suppress error when fifo opened, but there is no data to read from
         # the fifo (exception EAGAIN or EWOULDBLOCK). This exception raise when
-        # an operation would block on an object set for non-blocking operation
+        # an operation would block on an object set for non-blocking operation.
         try:
             data = os.read(self.fifo_fd, b_data_size)
             # If there is no one on the writing side and were streaming before,
