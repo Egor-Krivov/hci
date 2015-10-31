@@ -1,0 +1,9 @@
+{
+    "packet": {
+        "format": "11d4i",
+        "datalink_type": "pipe"
+    },
+    "datalink": {
+        "file": "/tmp/fifo_eegstream"
+    }
+}

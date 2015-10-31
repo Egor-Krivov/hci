@@ -1,2 +1,1 @@
-from . import datalink
-from .packer import PacketTransmitter
+from .packet import PacketTransmitter, PacketReceiver

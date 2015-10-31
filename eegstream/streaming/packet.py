@@ -22,7 +22,7 @@ class PacketBase(metaclass=ABCMeta):
             raise ValueError('Failed to unpack packet settings')
 
         # Unpack useful settings.
-        self.fmt = self.settings['fmt']
+        self.fmt = self.settings['format']
         self.datalink_type = self.settings['datalink_type']
 
         # Calculate packet size.
