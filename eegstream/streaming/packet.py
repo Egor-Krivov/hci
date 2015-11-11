@@ -10,28 +10,25 @@ class PacketBase(metaclass=ABCMeta):
 
     """
     def __init__(self, settings):
-        # Remove packet settings from global settings dictionary. Due to the
-        # hierarchical structure, lower level blocks do not require information
-        # from higher level settings.
+        # Pop packet settings from global settings dictionary. Due to the
+        # hierarchical structure, lower level do not require information from
+        # higher level settings.
         self.settings = settings.pop('packet', None)
         self.deeper_settings = settings
 
         if not self.settings:
-            # Happens, when settings, passed to the packer were incorrect
-            # and doesn't content settings for packer at all.
+            # Packet settings were incorrect.
             raise ValueError('Failed to unpack packet settings')
 
         # Unpack useful settings.
         self.fmt = self.settings['format']
         self.datalink_type = self.settings['datalink_type']
-
         # Calculate packet size.
         self.packet_size = struct.calcsize(self.fmt)
 
     @property
     @abstractmethod
     def datalink_class(self):
-        print('111111111111111111111111111111111111111')
         return DatalinkBase
 
     def __enter__(self):
@@ -44,18 +41,17 @@ class PacketBase(metaclass=ABCMeta):
 
 
 class PacketTransmitter(PacketBase):
-    """Class sends tuplet with basic python types via given data link.
+    """Class sends packet with basic python types via given data link.
 
     Parameters
     ----------
     settings : dict
-        Settings for streaming part on current level and below. Will take
-        packet settings from global settings dictionary and push everything
-        else deeper.
-        This class requires:
-            fmt: string
-                Setting, describing data in tuplet.
-            datalink_type: str
+        Settings for data streaming on current hierarchical level and below.
+        Will pop packet settings from global settings dictionary and push
+        everything else deeper. This class requires:
+            fmt : string
+                Data format in packet.
+            datalink_type : str
                 Data link type, one of the following:
                 'pipe': will use named pipe.
 
@@ -65,42 +61,47 @@ class PacketTransmitter(PacketBase):
         if self.datalink_type == 'pipe':
             return FifoTransmitter
         else:
-            # Packer couldn't understand datalink type, provided in settings
+            # Unknown datalink type provided in settings.
             raise ValueError('Unknown datalink type {}'.
                              format(self.datalink_type))
 
     def send(self, packet):
-        """Send packets in non-blocking mode.
+        """Send packet in non-blocking mode.
 
         Parameters
         ----------
         packet : iterable
-            Iterable with data organized according to fmt settings.
+            Iterable with data organized according to `fmt` setting.
+
+        Returns
+        -------
+        b_data_size : int
+            Number of bytes actually written. Can be zero, if nothing is
+            written.
 
         Raises
         ------
         exception.BrokenPipeError
-            Raises when pipe is broken. For example, when there is no one on
-            the reading side.
+            Raises when the FIFO is broken. For example, when there is no one
+            on the reading side.
 
         """
-        raw_packet = struct.pack(self.fmt, *packet)
-        return self.datalink.send(raw_packet)
+        b_data = struct.pack(self.fmt, *packet)
+        return self.datalink.send(b_data)
 
 
 class PacketReceiver(PacketBase):
-    """Class receives tuplets with basic python types via given data link.
+    """Class receives packets with basic python types via given data link.
 
     Parameters
     ----------
     settings : dict
-        Settings for streaming part on current level and below. Will take
-        packet settings from global settings dictionary and push everything
-        else deeper.
-        This class requires:
-            fmt: string
-                setting, describing data in tuplets.
-            datalink_type: str
+        Settings for data streaming on current hierarchical level and below.
+        Will pop packet settings from global settings dictionary and push
+        everything else deeper. This class requires:
+            fmt : string
+                Data format in packet.
+            datalink_type : str
                 Data link type, one of the following:
                 'pipe': will use named pipe.
 
@@ -110,37 +111,38 @@ class PacketReceiver(PacketBase):
         if self.datalink_type == 'pipe':
             return FifoReceiver
         else:
-            # Packer couldn't understand datalink type, provided in settings
+            # Unknown datalink type provided in settings.
             raise ValueError('Unknown datalink type {}'.
                              format(self.datalink_type))
 
-    def receive(self, packet_count):
+    def receive(self, n_packets):
         """Receive packets in non-blocking mode.
 
         Parameters
         ----------
-        packet_count : int
-            Maximum number of packets to gather.
+        n_packets : int
+            Number of packets to receive at most.
 
         Returns
         -------
         packets : list
-            Packets with data in given form fmt.
+            Packets with data in given format according to `fmt` setting.
 
         """
-        raw_data = self.datalink.receive(packet_count * self.packet_size)
+        b_data = self.datalink.receive(n_packets*self.packet_size)
 
-        # Calculate packet count and reminder.
-        packet_count, reminder = divmod(len(raw_data), self.packet_size)
+        # Calculate number of received packets (full packets) and reminder
+        # (broken packet's part). Normally, reminder must be zero indicating
+        # that none of the received packets has been lost.
+        n_packets, reminder = divmod(len(b_data), self.packet_size)
+        # This shouldn't happen at all, currently (with the FIFO)
+        assert reminder == 0, ('Broken packet: reminder={}'.format(reminder))
 
-        # This shouldn't happen at all, currently (with pipe)
-        assert reminder == 0, ('Incomplete number of bytes were found in data.\n'
-                               'Got {} packets and remider is {}'.
-                               format(packet_count, reminder))
+        # Parse binary data into chunks corresponding to the packet format.
+        b_data_list = [b_data[i*self.packet_size:(i+1)*self.packet_size]
+                       for i in range(n_packets)]
 
-        raw_data = [raw_data[i * self.packet_size:(i + 1) * self.packet_size]
-                    for i in range(packet_count)]
-        packets = [struct.unpack(self.fmt, raw_packet)
-                   for raw_packet in raw_data]
+        # Unpack binary chunks to real packets according to the given format.
+        packets = [struct.unpack(self.fmt, b_data) for b_data in b_data_list]
 
         return packets

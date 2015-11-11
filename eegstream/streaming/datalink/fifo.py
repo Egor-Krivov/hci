@@ -6,45 +6,60 @@ import time
 from .datalink import DatalinkTransmitter, DatalinkReceiver
 
 
+FIFO_FILE = '/tmp/fifo_eegstream'
+N_ATTEMPTS = 10
+
+
 class FifoTransmitter(DatalinkTransmitter):
-    """FIFO transmitter connects only after read fd was opened.
+    """Transmitter class based on the FIFO algorithm in non-blocking mode.
+
+    Opens the FIFO file (named pipe) for writing in non-blocking mode and
+    provides mechanism for data transmission through this data link. Due to
+    Unix system restrictions for writing in the FIFO in non-blocking mode,
+    this transmitter may establish connection only after FIFO was opened for
+    reading first. Transmitter takes into account potential connection problem
+    and can wait for connection establishment up to `N ATTEMPTS` seconds.
+    After this period of time an exception rises.
 
     Parameters
     ----------
     settings : dict
 
-    Attributes
-    ----------
-    file : str
-    fifo_fd : int
-
     """
     def __init__(self, settings):
-        self.file = settings['datalink'].pop('file', '/tmp/fifo')
+        # Pop data link settings.
+        super().__init__(settings)
+        # Unpack useful settings.
+        self.file = self.settings.pop('file', FIFO_FILE)
 
     def __enter__(self):
-        attempts = 60
-        for attempt_count in range(attempts):
-            # Create descriptor for the fifo file.
+        """
+        Raises
+        ------
+        exception.FileNotFoundError :
+            Raises when couldn't open the FIFO file.
+        """
+        for attempt in range(N_ATTEMPTS):
             try:
+                # Create descriptor for the FIFO file.
                 self.fifo_fd = os.open(self.file, os.O_WRONLY | os.O_NONBLOCK)
                 break
-            # This happens when no one has opened fifo for reading.
             except FileNotFoundError:
-                print('Failed to find receiver...', file=sys.stderr)
+                # This happens when no one has opened the FIFO for reading.
+                print('Waiting for receiver...', file=sys.stderr)
                 time.sleep(1)
         else:
             # After attempts delay raises the receiver not found exception.
-            raise FileNotFoundError('Failed to find receiver.')
+            raise FileNotFoundError('Failed to find receiver')
 
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        # Close the fifo file.
+        # Close the FIFO file.
         os.close(self.fifo_fd)
 
     def send(self, b_data):
-        """Send bytes in the fifo file in non-blocking mode.
+        """Send bytes in the FIFO file in non-blocking mode.
 
         Parameters
         ----------
@@ -58,36 +73,45 @@ class FifoTransmitter(DatalinkTransmitter):
 
         Raises
         ------
-        exception.BrokenPipeError
-            Raises when pipe is broken. For example, when there is no one on
-            the reading side
+        exception.BrokenPipeError :
+            Raises when the FIFO is broken. For example, when there is no one
+            on the reading side.
 
         """
-        # Suppress error when fifo opened, but there is no room to write data
-        # in the fifo (exception EAGAIN or EWOULDBLOCK). This exception raises
-        # when an operation would block on an object set for non-blocking
-        # operation. Cases: when pipe is full or recently was full (see module
-        # documentation).
         try:
-            # If there is room to write `len(b_data)` bytes to the fifo, then
-            # `os.write` succeeds immediately, writing all `len(b_data)` bytes,
-            # otherwise write fails, with errno set to EAGAIN.
+            # If there is room to write `len(b_data)` bytes to the FIFO, then
+            # `os.write` succeeds immediately writing all `len(b_data)` bytes,
+            # otherwise fails with error (exception EAGAIN or EWOULDBLOCK).
             b_data_size = os.write(self.fifo_fd, b_data)
-            assert b_data_size == len(b_data), 'FIFO managed to write part' \
-                                               ' of information'
+            # If there is still room to write `len(b_data)` bytes to the FIFO,
+            # but binary length is greater than the FIFO buffer size, writing
+            # operation may be non-atomic. The number of bytes written may be
+            # less than expected count.
+            assert b_data_size == len(b_data), 'Failed to write data block'
         except BlockingIOError as ose:
+            # Suppress error when the FIFO opened, but there is no room to
+            # write data in the FIFO (exception EAGAIN or EWOULDBLOCK). This
+            # exception raises when an operation would block on an object set
+            # for non-blocking writing. Important cases: when the FIFO is full
+            # or recently was full.
             if ose.errno == errno.EAGAIN or ose.errno == errno.EWOULDBLOCK:
-                print('Failed to write to FIFO: {}, probably pipe if full'.
-                      format(ose), file=sys.stderr)
+                print('FIFO if full: {}'.format(ose), file=sys.stderr)
                 b_data_size = 0
             else:
-                raise  # something else has happened -- better reraise
+                # Something else has happened, better reraise.
+                raise
 
         return b_data_size
 
 
 class FifoReceiver(DatalinkReceiver):
-    """FIFO receiver class.
+    """Receiver class based on the FIFO algorithm in non-blocking mode.
+
+    Opens the FIFO file (named pipe) for reading in non-blocking mode and
+    provides mechanism for data receiving through this data link. Due to
+    Unix system restrictions for writing in the FIFO in non-blocking mode,
+    this receiver should open the FIFO for reading first. Receiver takes it
+    into account and creates named pipe first.
 
     Parameters
     ----------
@@ -95,7 +119,10 @@ class FifoReceiver(DatalinkReceiver):
 
     """
     def __init__(self, settings):
-        self.file = settings['datalink'].pop('file', '/tmp/fifo')
+        # Pop data link settings.
+        super().__init__(settings)
+        # Unpack useful settings.
+        self.file = self.settings.pop('file', FIFO_FILE)
         # If started getting bytes from the writing side.
         self.streaming = False
 
@@ -103,66 +130,75 @@ class FifoReceiver(DatalinkReceiver):
         """
         Raises
         ------
-        FileExistsError :
-            Raises when couldn't create the fifo file, because one already
+        exception.FileExistsError :
+            Raises when couldn't create the FIFO file, because one already
             exists.
-
-        FileNotFoundError:
-            Raises when couldn't open fifo file.
+        exception.FileNotFoundError :
+            Raises when couldn't open the FIFO file.
 
         """
-        # Create the fifo file.
         try:
+            # Create the FIFO file using file name.
             os.mkfifo(self.file)
         except FileExistsError as fee:
+            # The FIFO already exists, raising an error.
             print('Failed to create FIFO: {}'.format(fee), file=sys.stderr)
             raise
 
-        # Create descriptor for the fifo file.
         try:
+            # Create descriptor for the FIFO file.
             self.fifo_fd = os.open(self.file, os.O_RDONLY | os.O_NONBLOCK)
         except FileNotFoundError as fnfe:
+            # Could not create descriptor for the FIFO file.
             print('Failed to open FIFO: {}'.format(fnfe), file=sys.stderr)
             raise
 
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        # Close the fifo file.
+        # Close the FIFO file.
         os.close(self.fifo_fd)
 
-        # Delete the fifo file.
         try:
+            # Delete the FIFO file.
             os.unlink(self.file)
         except OSError as ose:
             print('Failed to delete FIFO: {}'.format(ose), file=sys.stderr)
 
     def receive(self, b_data_size):
-        """Receive bytes from the fifo file in non-blocking mode.
+        """Receive bytes from the FIFO file in non-blocking mode.
 
         Parameters
         ----------
         b_data_size : int
-            number of bytes to read at most
+            Number of bytes to read at most.
 
         Returns
         -------
-        b_data : bytes object | None
+        b_data : bytes object
+
+        Raises
+        ------
+        exception.BrokenPipeError :
+            Raises when the FIFO is broken. For example, when there is no one
+            on the writing side yet.
 
         """
-        # Suppress error when fifo opened, but there is no data to read from
-        # the fifo (exception EAGAIN or EWOULDBLOCK). This exception raise when
-        # an operation would block on an object set for non-blocking operation.
         try:
-            data = os.read(self.fifo_fd, b_data_size)
-            # If there is no one on the writing side and were streaming before,
-            # meaning that server was probably closed.
+            b_data = os.read(self.fifo_fd, b_data_size)
+            # If there is no one on the writing side and there were streaming
+            # before. Means that server was probably closed.
             # if data == bytes() and self.streaming:
         except BlockingIOError as ose:
+            # Suppress error when the FIFO opened, but there is no data to read
+            # from (exception EAGAIN or EWOULDBLOCK). This exception raises
+            # when an operation would block on an object set for non-blocking
+            # reading.
             if ose.errno == errno.EAGAIN or ose.errno == errno.EWOULDBLOCK:
-                print('Failed to read from FIFO: {}, no data was sent yet'.
-                      format(ose), file=sys.stderr)
-                data = bytes()
+                print('FIFO is idle: {}'.format(ose), file=sys.stderr)
+                b_data = bytes()
             else:
+                # Something else has happened, better reraise.
                 raise
-        return data
+
+        return b_data
