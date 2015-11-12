@@ -31,14 +31,16 @@ class Master:
         self.mask = mask
         self.tofile = tofile
 
-        # Calculate deque based buffer length in accordance with system
-        # protocol and corresponding packet size.
-        self.deque_len = 2**16 // worker.packet_size
+        # Calculate maximum buffer length of underlying data link in accordance
+        # with system protocol and corresponding packet size.
+        self.max_len = 2**16 // worker.packet_size
         # Create empty deque based buffer for realtime aquired data. The deque
         # is bounded to the specified maximum length. Once a bounded length
         # deque is full, when new items are added, a corresponding number of
-        # items are discarded from the opposite end.
-        self.deque = collections.deque(maxlen=self.deque_len)
+        # items are discarded from the opposite end. Deque based buffer only
+        # designed to retain `epoch_len` up to date samples, all other samples
+        # are discarded.
+        self.deque = collections.deque(maxlen=self.epoch_len)
 
     def __enter__(self):
         self.worker.__enter__()
@@ -58,8 +60,10 @@ class Master:
         """
         while True:
             # Read all samples from data link buffer.
-            sample_list = self.worker.receive(self.deque_len)
-            # Add aquired samples to deque.
+            sample_list = self.worker.receive(self.max_len)
+            # Add aquired samples to deque. Deque based buffer retains only
+            # `epoch_len` most right samples from provided sample list. All
+            # other samples are discarded, because they are out of date.
             self._extend_deque(sample_list)
 
             if len(self.deque) < self.epoch_len:
@@ -71,7 +75,7 @@ class Master:
                 # means that `t(step) > t_clf(epoch_len)` and pipeline can
                 # classify epochs of length `epoch_len` faster than `step` new
                 # samples can be aquired from device.
-                epoch = self._get_epoch()
+                epoch = np.array(self.deque).T
                 # Pop out of date samples from deque.
                 self._pop_deque()
                 return epoch
@@ -81,29 +85,21 @@ class Master:
                 # each epoch of length `epoch_len` at the rate of `step` new
                 # samples aquired from device. In order to overcome potential
                 # deque overflow, algoritm will use only up to date samples,
-                # discarding all previous aquared samples. This approach can
-                # reduce classification latency, but instead produce big gaps
-                # in aquired samples. Only epochs aquired directly after
+                # discarding all previously aquired samples. This approach can
+                # reduce classification latency, but instead produces time gaps
+                # between aquired samples. Only epochs aquired directly after
                 # pipeline routine will be used for prediction.
-                epoch = self._get_epoch()
+                epoch = np.array(self.deque).T
                 # Pop out of date samples from deque.
                 self._pop_deque()
                 print('Slow pipeline...')
                 return epoch
 
     def _extend_deque(self, sample_list):
-        """Extend deque based buffer with new samples."""
+        """Extend deque based buffer with up to date samples."""
         self.deque.extend(sample_list)
 
     def _pop_deque(self):
         """Remove from deque based buffer out of data samples."""
-        # Only most right samples are up to date.
-        offset = len(self.deque) - self.epoch_len + self.step
-
-        for _i in range(offset):
+        for _i in range(self.step):
             self.deque.popleft()
-
-    def _get_epoch(self):
-        """Return actual epoch from deque based buffer."""
-        # Only most right samples are up to date.
-        return np.array(self.deque)[-self.epoch_len:].T
