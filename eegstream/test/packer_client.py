@@ -5,8 +5,8 @@ import numpy as np
 from eegstream.streaming.packet import PacketReceiver
 
 
-settings = {'packet': {'format': '19ic', 'datalink_type': 'pipe'},
-            'datalink': {'file': '/tmp/fifo'}}
+settings = {'packet': {'format': '8ic', 'datalink_type': 'pipe'},
+            'datalink': {'file': '/tmp/fifo_eegstream'}}
 
 with PacketReceiver(settings) as packet_r:
     # Sleep timeout.

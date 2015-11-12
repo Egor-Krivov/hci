@@ -8,14 +8,14 @@ from eegstream.streaming.packet import PacketTransmitter
 import cProfile
 
 cProfile.run("""
-settings = {'packet': {'format': '19ic', 'datalink_type': 'pipe'},
-            'datalink': {'file': '/tmp/fifo'}}
+settings = {'packet': {'format': '8ic', 'datalink_type': 'pipe'},
+            'datalink': {'file': '/tmp/fifo_eegstream'}}
 
 i = 0
 with PacketTransmitter(settings) as packet_t:
     while True:
         # sleep timeout
-        time.sleep(0.0001)
+        time.sleep(1/250)
         # generate random packet
 
         data = [i] * 19 + [b'0']

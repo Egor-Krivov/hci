@@ -1,3 +1,8 @@
+"""OpenBCI daemon.
+
+Script connects to openBCI board and starts raw packet transmission.
+
+"""
 import time
 from os.path import dirname
 
