@@ -3,7 +3,7 @@ import copy
 import pdb
 import numpy as np
 
-from eegstream.streaming.packet import PacketTransmitter
+from eegstream.streaming import PacketTransmitter
 
 settings = {'packet': {'format': '8d', 'datalink_type': 'pipe'},
             'datalink': {'file': '/tmp/fifo_eegstream'}}
