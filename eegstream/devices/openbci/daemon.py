@@ -3,7 +3,7 @@
 Script connects to openBCI board and starts raw packet transmission.
 
 """
-import os
+import os.path as pa
 import sys
 import time
 
@@ -26,8 +26,8 @@ def make_callback(packet_t, save=False):
             file.write(_to_str(sample))
 
     # Generate file name for data stream.
-    cdir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../')
-    file = os.path.join(cdir, 'eo-ec-' + time.strftime('%Y-%m-%d-%H-%M-%S'))
+    cdir = pa.join(pa.dirname(pa.abspath(__file__)), '../../data/')
+    file = pa.join(cdir, 'eoec-' + time.strftime('%y-%m-%d-%H-%M-%S') + '.csv')
     # Initialize attribute.
     callback_save.file = file
 
@@ -74,7 +74,7 @@ if __name__ == '__main__':
     # ==========================
 
     # Initialize global settings.
-    settings = load_settings(os.path.dirname(__file__))
+    settings = load_settings(pa.dirname(__file__))
     # Initialize script settings.
     save = False if len(sys.argv) == 1 else True
 
