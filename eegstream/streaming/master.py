@@ -4,7 +4,7 @@ import collections
 import numpy as np
 
 SLEEP_TIMEOUT = 0.001
-MAX_BUFFER = 2 ** 12
+MAX_BUFFER = 4096
 
 
 class Master:
@@ -35,12 +35,12 @@ class Master:
         # Calculate maximum possible buffer length
         self.max_buffer = MAX_BUFFER
 
-        # Create empty deque based buffer for real-time acquired data. The deque
-        # is bounded to the specified maximum length. Once a bounded length
-        # deque is full, when new items are added, a corresponding number of
-        # items are discarded from the opposite end. Deque based buffer only
-        # designed to retain `epoch_len` up to date samples, all other samples
-        # are discarded.
+        # Create empty deque based buffer for real-time acquired data. The
+        # deque is bounded to the specified maximum length. Once a bounded
+        # length deque is full, when new items are added, a corresponding
+        # number of items are discarded from the opposite end. Deque based
+        # buffer only designed to retain `epoch_len` up to date samples, all
+        # other samples are discarded.
         self.deque = collections.deque(maxlen=self.epoch_len)
 
     def __enter__(self):
