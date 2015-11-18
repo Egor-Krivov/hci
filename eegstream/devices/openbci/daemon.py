@@ -3,22 +3,50 @@
 Script connects to openBCI board and starts raw packet transmission.
 
 """
+import os
+import sys
 import time
-from os.path import dirname
+
+import numpy as np
 
 from open_bci_v3 import OpenBCIBoard
 from eegstream.streaming import PacketTransmitter
 from eegstream.utils import load_settings
 
 
-def make_callback(packet_t):
+def make_callback(packet_t, save=False):
     """Callback wrapper.
 
     """
-    def callback(vsample):
-        packet_t.send(vsample.channel_data)
+    def callback(sample):
+        packet_t.send(sample.channel_data)
 
-    return callback
+    def callback_save(sample):
+        with open(callback_save.file, 'a') as file:
+            file.write(_to_str(sample))
+
+    # Generate file name for data stream.
+    cdir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../')
+    file = os.path.join(cdir, 'eo-ec-' + time.strftime('%Y-%m-%d-%H-%M-%S'))
+    # Initialize attribute.
+    callback_save.file = file
+
+    return [callback, callback_save] if save else callback
+
+
+def _to_str(sample):
+    sid = sample.id
+    eeg = sample.channel_data
+    aux = sample.aux_data
+
+    # Parse time data.
+    raw = ['{:.0f}'.format(sid)]
+    # Parse eeg data.
+    raw.extend(['{:.6f}'.format(x) for x in eeg])
+    # Parse auxiliary data.
+    raw.extend(['{:.3f}'.format(x) for x in aux])
+
+    return ','.join(x for x in raw) + '\n'
 
 
 if __name__ == '__main__':
@@ -46,10 +74,12 @@ if __name__ == '__main__':
     # ==========================
 
     # Initialize global settings.
-    settings = load_settings(dirname(__file__))
+    settings = load_settings(os.path.dirname(__file__))
+    # Initialize script settings.
+    save = False if len(sys.argv) == 1 else True
 
     with PacketTransmitter(settings) as packet_t:
         # Get callback function.
-        callback = make_callback(packet_t)
+        callback = make_callback(packet_t, save)
         # Start board streaming.
         board.start_streaming(callback)
