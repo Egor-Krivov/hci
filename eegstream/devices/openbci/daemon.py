@@ -60,14 +60,18 @@ if __name__ == '__main__':
     # Instantiate board.
     board = OpenBCIBoard(port=port, baud=baud, filter_data=False,
                          scaled_output=True, log=False)
-    print('Board instantiated')
+    print('Board instantiated...')
     # Soft reset for the board peripherals. The 8bit board gets a reset signal
     # from the dongle any time an application opens the serial port, just like
     # an arduino. The 32bit board doesn't have this feature. To reset the 32bit
     # board program should send it a `v`.
     board.ser.write(b'v')
     # Wait reasonable amount of time to establish stable connection.
-    time.sleep(10)
+    time.sleep(5)
+    # Begin countdown timer.
+    for t in range(5, 0, -1):
+        print('{}...'.format(t), file=sys.stderr)
+        time.sleep(1)
 
     # ==========================
     # Start packet transmission.
