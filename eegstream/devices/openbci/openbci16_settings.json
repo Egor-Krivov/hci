@@ -1,9 +1,9 @@
 {
     "packet": {
-        "format": "8d",
+        "format": "16d",
         "datalink_type": "pipe"
     },
     "datalink": {
-        "file": "/tmp/fifo_eegstream"
+        "file": "/tmp/fifo_eegstream_openbci16"
     }
 }
