@@ -5,13 +5,12 @@ Script connects to openBCI board and starts raw packet transmission.
 """
 import sys
 import time
-from copy import deepcopy
 from os.path import dirname, join, abspath
 from contextlib import ExitStack
 
 from eegstream.devices.openbci.open_bci_v3 import OpenBCIBoard
-from eegstream.streaming import PacketTransmitter
-from eegstream.utils import load_settings
+from eegstream.devices import OpenBCI8
+from eegstream.devices.tools import make_packet_transmitter
 
 
 def make_callback(packet_transmitters, save=False):
@@ -58,7 +57,7 @@ def _to_str(sample):
     return ','.join(x for x in raw) + '\n'
 
 
-def start_streaming(save=False, filenames=None):
+def start_streaming(transmitters, save=False):
     """Start streaming loop. Will use settings from settings file.
 
     Parameters
@@ -66,8 +65,8 @@ def start_streaming(save=False, filenames=None):
     save : boolean
         If streaming should record data in additional logfile.
 
-    filenames : iterable
-        Iterable with strings, describing paths to fifo files.
+    transmitters : iterable
+        Iterable with packet transmitters for connections.
         If not given, then standard path from setting file is used.
 
     """
@@ -90,40 +89,24 @@ def start_streaming(save=False, filenames=None):
     board.ser.write(b'v')
     # Wait reasonable amount of time to establish stable connection.
     time.sleep(5)
+
     # Begin countdown timer.
     for t in reversed(range(0, 6)):
         print('{}...'.format(t), file=sys.stderr)
         time.sleep(1)
 
-    # ==========================
-    # Start packet transmission.
-    # ==========================
-
-    # Initialize global settings.
-    standard_settings = load_settings(dirname(__file__))
-    # Initialize script settings.
-
-    settings_list = []
-    if not filenames:
-        filenames = [standard_settings['datalink']['file']]
-
-    for filename in filenames:
-        file_settings = deepcopy(standard_settings)
-        file_settings['datalink']['file'] = filename
-        settings_list.append(file_settings)
-
     with ExitStack() as stack:
-        transmitters = []
-        # Instantiate transmitters
-        for settings in settings_list:
-            transmitter = stack.enter_context(PacketTransmitter(settings))
-            transmitters.append(transmitter)
-
+        for transmitter in transmitters:
+            stack.enter_context(transmitter)
         callback = make_callback(transmitters, save)
+
         # Start board streaming loop.
+        # ==========================
+        # Start packet transmission.
+        # ==========================
         board.start_streaming(callback)
 
 
 if __name__ == '__main__':
     save = len(sys.argv) > 1
-    start_streaming(save=save)
+    start_streaming(transmitters=[make_packet_transmitter(OpenBCI8)], save=save)

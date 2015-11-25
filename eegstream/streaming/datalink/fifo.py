@@ -158,7 +158,7 @@ class FifoReceiver(DatalinkReceiver):
     def __exit__(self, exc_type, exc_val, exc_tb):
         # Close the FIFO file.
         os.close(self.fifo_fd)
-
+        #os.unlink(self.file)
         try:
             # Delete the FIFO file.
             os.unlink(self.file)
@@ -195,7 +195,7 @@ class FifoReceiver(DatalinkReceiver):
             # when an operation would block on an object set for non-blocking
             # reading.
             if ose.errno == errno.EAGAIN or ose.errno == errno.EWOULDBLOCK:
-                print('FIFO is idle: {}'.format(ose), file=sys.stderr)
+                # print('FIFO is idle: {}'.format(ose), file=sys.stderr)
                 b_data = bytes()
             else:
                 # Something else has happened, better reraise.

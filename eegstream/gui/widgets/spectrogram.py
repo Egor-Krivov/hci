@@ -18,7 +18,7 @@ class Spectrogram(BasicVisualizer):
     """
     def __init__(self, master, data_source):
         super().__init__(master, name='Spectrogram', interval=100,
-                         data_source=data_source)
+                         data_source=data_source, navigation_toolbar=True)
 
     def init_figure(self):
         """Function to clear figure and create empty plot."""
@@ -26,7 +26,7 @@ class Spectrogram(BasicVisualizer):
         # twice.
         self.figure.clear()
         self.ax = self.figure.add_subplot(111)
-        self.ax.set_xlim((0, 2))
+        self.ax.set_xlim((0, 20))
         self.ax.set_ylim((-2, 2))
         self.line, = self.ax.plot([], [], lw=2)
         self.line.set_data([], [])
@@ -34,8 +34,9 @@ class Spectrogram(BasicVisualizer):
 
     def animate_figure(self, data):
         """Function for animation process, called on each frame."""
-        x = np.linspace(0, 2, 1000)
-        y = np.sin(2 * np.pi * (x + 0.01 * data))
+        print(data, file=sys.stderr)
+        x, y = data
+        print(x, y, file=sys.stderr)
         self.line.set_data(x, y)
         return self.line,
 

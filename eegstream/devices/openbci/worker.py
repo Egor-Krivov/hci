@@ -3,11 +3,10 @@
 Worker class is used to communicate with OpenBCI board.
 
 """
-from os.path import dirname
 import warnings
 
+from .devices import OpenBCI8
 from eegstream.streaming import PacketReceiver
-from eegstream.utils import load_settings
 
 
 class Worker(PacketReceiver):
@@ -17,5 +16,5 @@ class Worker(PacketReceiver):
     def __init__(self):
         warnings.warn("deprecated, use make_receiver(device=OpenBCI8) from "
                       "eegstream.devices instead", DeprecationWarning)
-        settings = load_settings(dirname(__file__))
+        settings = OpenBCI8().get_default_settings()
         super().__init__(settings)

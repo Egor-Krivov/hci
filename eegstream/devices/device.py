@@ -1,20 +1,21 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractclassmethod
+from copy import deepcopy
 import json
 
 
 class Device(metaclass=ABCMeta):
     """Abstract class for some device. Hides default settings implementation."""
+    @classmethod
     @abstractmethod
-    def get_default_settings(self):
+    def get_default_settings(cls):
         """Return default settings for the device."""
         pass
 
 
 class JsonDevice(Device):
     """Class for device with settings in device's folder in json file."""
-    def __init__(self, settings_path):
-        with open(settings_path) as f:
-            self.settings = json.load(f)
-
-    def get_default_settings(self):
-        return self.settings
+    @classmethod
+    def get_default_settings(cls):
+        with open(cls.settings_path) as f:
+            settings = json.load(f)
+        return settings

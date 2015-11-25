@@ -17,6 +17,6 @@ def make_packet_receiver(device: Device, filename: str=None):
 
 
 def make_packet_connection(device: Device, filename: str=None):
-    transmitter = make_packet_transmitter(device, filename)
     receiver = make_packet_receiver(device, filename)
+    transmitter = make_packet_transmitter(device, filename)
     return transmitter, receiver

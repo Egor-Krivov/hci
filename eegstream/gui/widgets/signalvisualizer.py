@@ -34,9 +34,13 @@ class SignalVisualizer(BasicVisualizer):
 
     def animate_figure(self, data):
         """Function for animation process, called on each frame."""
-        x = np.linspace(0, 2, 1000)
-        y = np.sin(2 * np.pi * (x + 0.01 * data))
-        self.line.set_data(x, y)
+        #print(data)
+        y = np.array(self.line.get_ydata())
+        if data :
+            y = np.hstack((y, np.array(data)[:, 0]))
+            y = y[-250:]
+            x = np.linspace(0, 2, len(y))
+            self.line.set_data(x, y)
         return self.line,
 
 
