@@ -1,5 +1,9 @@
 from tkinter import *
+
+from scipy.signal import welch
+
 from .basic_visualizer import BasicVisualizer
+from eegstream.gui.signal import SignalInterface
 
 import numpy as np
 
@@ -12,13 +16,12 @@ class Spectrogram(BasicVisualizer):
     master : tkinter.Frame
         Container for widget.
 
-    data_source : iterable or generator
-        Provides data for the animation, should return list of new values.
-
     """
-    def __init__(self, master, data_source):
+    def __init__(self, master, signal_interface: SignalInterface):
+        self.signal_interface = signal_interface
         super().__init__(master, name='Spectrogram', interval=100,
-                         data_source=data_source, navigation_toolbar=True)
+                         data_source=signal_interface.spectrogram,
+                         navigation_toolbar=True)
 
     def init_figure(self):
         """Function to clear figure and create empty plot."""
@@ -26,20 +29,23 @@ class Spectrogram(BasicVisualizer):
         # twice.
         self.figure.clear()
         self.ax = self.figure.add_subplot(111)
-        self.ax.set_xlim((0, 20))
-        self.ax.set_ylim((-2, 2))
+        self.ax.set_xlim((1, 35))
+        self.y_max = 0.001
+        self.ax.set_ylim((0, self.y_max))
         self.line, = self.ax.plot([], [], lw=2)
         self.line.set_data([], [])
         return self.line,
 
     def animate_figure(self, data):
         """Function for animation process, called on each frame."""
-        print(data, file=sys.stderr)
-        x, y = data
-        print(x, y, file=sys.stderr)
-        self.line.set_data(x, y)
+        if data:
+            x, y = data
+            if self.y_max < y.max():
+                self.y_max = y.max()
+                self.ax.set_ylim((0, self.y_max))
+                self.figure.canvas.draw()
+            self.line.set_data(x, y)
         return self.line,
-
 
 
 if __name__ == '__main__':

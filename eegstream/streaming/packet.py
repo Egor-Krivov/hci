@@ -4,6 +4,7 @@ from abc import abstractmethod, ABCMeta
 from .datalink import FifoTransmitter, FifoReceiver
 from .datalink.datalink import DatalinkBase
 
+MAX_BUFFER = 4096
 
 class PacketBase(metaclass=ABCMeta):
     """Abstract base class for packet.
@@ -146,3 +147,20 @@ class PacketReceiver(PacketBase):
         packets = [struct.unpack(self.fmt, b_data) for b_data in b_data_list]
 
         return packets
+
+    def receive_all(self):
+        """Receive all available packets in non-blocking mode.
+
+        Returns
+        -------
+        packets : list
+            Packets with data in given format according to `fmt` setting.
+
+        """
+        data = []
+        while True:
+            new_data = self.receive(MAX_BUFFER)
+            data.extend(new_data)
+            if len(new_data) < MAX_BUFFER:
+                break
+        return data

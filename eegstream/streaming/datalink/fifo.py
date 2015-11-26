@@ -195,7 +195,7 @@ class FifoReceiver(DatalinkReceiver):
             # when an operation would block on an object set for non-blocking
             # reading.
             if ose.errno == errno.EAGAIN or ose.errno == errno.EWOULDBLOCK:
-                # print('FIFO is idle: {}'.format(ose), file=sys.stderr)
+                # print('FIFO is empty: {}'.format(ose), file=sys.stderr)
                 b_data = bytes()
             else:
                 # Something else has happened, better reraise.

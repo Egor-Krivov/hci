@@ -4,7 +4,6 @@ import collections
 import numpy as np
 
 SLEEP_TIMEOUT = 0.001
-MAX_BUFFER = 4096
 
 
 class Master:
@@ -32,8 +31,6 @@ class Master:
         self.step = step
         self.mask = mask
         self.to_file = to_file
-        # Calculate maximum possible buffer length
-        self.max_buffer = MAX_BUFFER
 
         # Create empty deque based buffer for real-time acquired data. The
         # deque is bounded to the specified maximum length. Once a bounded
@@ -61,8 +58,8 @@ class Master:
 
         """
         while True:
-            # Read all samples from data link buffer.
-            sample_list = self.worker.receive(self.max_buffer)
+            # Read all samples from data link.
+            sample_list = self.worker.receive_all()
             # Add acquired samples to deque. Deque based buffer retains only
             # the last `epoch_len` samples from provided sample list. All
             # other samples are discarded, because they are out of date.

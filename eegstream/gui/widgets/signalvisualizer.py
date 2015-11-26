@@ -1,7 +1,9 @@
 from tkinter import *
-from eegstream.gui.widgets.basic_visualizer import BasicVisualizer
 
 import numpy as np
+
+from eegstream.gui.widgets.basic_visualizer import BasicVisualizer
+from eegstream.gui.signal import SignalInterface
 
 
 class SignalVisualizer(BasicVisualizer):
@@ -16,9 +18,12 @@ class SignalVisualizer(BasicVisualizer):
         Provides data for the animation, should return list of new values.
 
     """
-    def __init__(self, master, data_source):
+    def __init__(self, master, signal_interface: SignalInterface):
+        self.signal_interface = signal_interface
         super().__init__(master, name='Signal Visualizer', interval=25,
-                         data_source=data_source)
+                         data_source=signal_interface)
+        self.x = np.linspace(0, signal_interface.window,
+                             signal_interface.get_signal_len())
 
     def init_figure(self):
         """Function to clear figure and create empty plot."""
@@ -26,7 +31,7 @@ class SignalVisualizer(BasicVisualizer):
         # twice.
         self.figure.clear()
         self.ax = self.figure.add_subplot(111)
-        self.ax.set_xlim((0, 2))
+        self.ax.set_xlim((0, self.signal_interface.window))
         self.ax.set_ylim((-2, 2))
         self.line, = self.ax.plot([], [], lw=2)
         self.line.set_data([], [])
@@ -34,19 +39,12 @@ class SignalVisualizer(BasicVisualizer):
 
     def animate_figure(self, data):
         """Function for animation process, called on each frame."""
-        #print(data)
-        y = np.array(self.line.get_ydata())
-        if data :
-            y = np.hstack((y, np.array(data)[:, 0]))
-            y = y[-250:]
-            x = np.linspace(0, 2, len(y))
-            self.line.set_data(x, y)
+        if data:
+            y = np.array(data)[:, 0]
+            self.line.set_data(self.x[:len(y)], y)
         return self.line,
-
 
 
 if __name__ == '__main__':
     root = Tk()
-    widget = SignalVisualizer(root, data_source=iter(range(10000)))
-    widget.pack(expand=TRUE, fill=BOTH)
     root.mainloop()
