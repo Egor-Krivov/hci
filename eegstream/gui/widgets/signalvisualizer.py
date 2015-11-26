@@ -30,18 +30,17 @@ class SignalVisualizer(BasicVisualizer):
         # It is important, because with blit=True this function is called
         # twice.
         self.figure.clear()
-        self.ax = self.figure.add_subplot(111)
-        self.ax.set_xlim((0, self.signal_interface.window))
-        self.ax.set_ylim((-2, 2))
-        self.line, = self.ax.plot([], [], lw=2)
+        ax = self.figure.add_subplot(111)
+        ax.set_xlim((0, self.signal_interface.window))
+        ax.set_ylim((-2, 2))
+        self.line, = ax.plot([], [], lw=2)
         self.line.set_data([], [])
         return self.line,
 
     def animate_figure(self, data):
         """Function for animation process, called on each frame."""
-        if data:
-            y = np.array(data)[:, 0]
-            self.line.set_data(self.x[:len(y)], y)
+        if data is not None:
+            self.line.set_data(self.x[:len(data[0])], data[0])
         return self.line,
 
 

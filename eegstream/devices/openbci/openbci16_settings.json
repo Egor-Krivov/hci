@@ -1,5 +1,6 @@
 {
     "packet": {
+        "channels": 16,
         "format": "16d",
         "datalink_type": "pipe"
     },

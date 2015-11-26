@@ -14,7 +14,7 @@ class EEGMonitor:
 
         self.right_frame = Frame(self.root)
         self.right_frame.pack(side=LEFT, expand=TRUE, fill=BOTH)
-        self.control_panel = ControlPanel(self.right_frame)
+        self.control_panel = ControlPanel(self.right_frame, signal_interface)
         self.control_panel.pack(side=TOP, expand=TRUE, fill=X)
 
         self.spectrogram = Spectrogram(self.right_frame, signal_interface)
