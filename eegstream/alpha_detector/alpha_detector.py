@@ -70,7 +70,7 @@ class AlphaDetector:
             # Create mask.
             mask = (f > fmin) & (f < fmax)
             # Calculate stimulus.
-            y = np.mean(pxx[mask], axis=-1)
+            y = np.mean(pxx[mask])
         else:
             # Design digital Butterworth filter in sos format.
             order, freq_nqst = 6, fs//2
@@ -79,7 +79,7 @@ class AlphaDetector:
             # Filter signal.
             xf = sig.sosfilt(sos, x, axis=-1)
             # Calculate stimulus.
-            y = np.mean(xf, axis=-1)
+            y = np.mean(xf)
 
         return y
 
@@ -112,7 +112,7 @@ class EBAS:
         x = x.astype(np.float64)
 
         # Estimate stimulus.
-        y = self.detector.detect(x)[0]
+        y = self.detector.detect(x)
         # Update deque with stimulus.
         self._update_deque(y)
         # Calculate generalized stimulus.
@@ -129,7 +129,7 @@ class EBAS:
         # Calculate deque length.
         deque_len = len(self.deque)
         # Calculate weights.
-        w = np.linspace(0.25, 1.0, num=deque_len, endpoint=True)
+        w = np.linspace(0.5, 1.0, num=deque_len, endpoint=True)
         w /= np.sum(w)
 
         if np.dot(np.array(self.deque), w) > 0.5:

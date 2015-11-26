@@ -29,13 +29,13 @@ class WALLE:
         self.ser = serial.Serial(port=port, baudrate=baud, timeout=timeout)
         time.sleep(5)
         print('Serial established...', file=sys.stderr)
-        # WALL-E should stay idle in initial position.
+        # WALL-E robot should stay idle in initial position.
         self.ser.write(b'z')
         self._sleep()
-        # Disconnects from WALL-E when terminated.
+        # Disconnects from WALL-E robot when terminated.
         atexit.register(self._disconnect)
 
-    def go(self):
+    def move(self):
         self.ser.write(b'w')
         self._sleep()
 
@@ -56,12 +56,11 @@ class WALLE:
         time.sleep(delay)
 
     def _disconnect(self):
-
         # Close serial port.
+        print('Closing Serial...', file=sys.stderr)
+
         if self.ser.isOpen():
             self.ser.close()
-
-        print('Closing Serial...', file=sys.stderr)
 
 
 if __name__ == '__main__':
@@ -74,8 +73,8 @@ if __name__ == '__main__':
 
     while True:
         walle.right()
-        time.sleep(5)
+        time.sleep(3)
         walle.stop()
         walle.left()
-        time.sleep(5)
+        time.sleep(3)
         walle.stop()
