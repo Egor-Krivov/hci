@@ -91,7 +91,7 @@ def start_streaming(transmitters, save=False):
     time.sleep(5)
 
     # Begin countdown timer.
-    for t in reversed(range(0, 6)):
+    for t in reversed(range(1, 4)):
         print('{}...'.format(t), file=sys.stderr)
         time.sleep(1)
 
