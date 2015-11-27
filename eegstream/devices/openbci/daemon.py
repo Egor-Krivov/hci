@@ -57,6 +57,23 @@ def _to_str(sample):
     return ','.join(x for x in raw) + '\n'
 
 
+def setup_channel(board, chan, params):
+    """Setups channel setting commands.
+
+    """
+    board.ser.write(b'x')
+    time.sleep(0.1)
+    board.ser.write(bytes(chan, 'ascii'))
+    time.sleep(0.1)
+
+    for s in str(params):
+        board.ser.write(bytes(s, 'ascii'))
+        time.sleep(0.1)
+
+    board.ser.write(b'X')
+    time.sleep(0.1)
+
+
 def start_streaming(transmitters, save=False):
     """Start streaming loop. Will use settings from settings file.
 
@@ -90,21 +107,37 @@ def start_streaming(transmitters, save=False):
     # Wait reasonable amount of time to establish stable connection.
     time.sleep(5)
 
+        # Channel setting commands.
+    #
+    # CHANNEL        : 1 2 3 4 5 6 7 8 Q W E R T Y U I
+    # POWER_DOWN     : 0\1 = ON\OFF (0 default)
+    # GAIN_SET       : 0 1 2 3 4 5 6 (6 default)
+    # INPUT_TYPE_SET : 0 (ADSINPUT_NORMAL default)
+    # BIAS_SET       : 0\1 = Remove\include from\in BIAS (1 default)
+    # SRB2_SET       : 0\1 = Dis\connect this input from\to SRB2 (1 default)
+    # SRB1_SET       : 0\1 = Dis\connect all inputs from\to SRB1 (0 default)
+
+    setup_channel(board, '1', '100000')
+    setup_channel(board, '2', '060000')  # ON
+    setup_channel(board, '3', '100000')
+    setup_channel(board, '4', '060000')  # ON
+    setup_channel(board, '5', '100000')
+    setup_channel(board, '6', '100000')
+    setup_channel(board, '7', '060000')  # ON
+    setup_channel(board, '8', '100000')
+
     # Begin countdown timer.
     for t in reversed(range(1, 4)):
         print('{}...'.format(t), file=sys.stderr)
         time.sleep(1)
 
-    with ExitStack() as stack:
-        for transmitter in transmitters:
-            stack.enter_context(transmitter)
-        callback = make_callback(transmitters, save)
+    callback = make_callback(transmitters, save)
 
-        # Start board streaming loop.
-        # ==========================
-        # Start packet transmission.
-        # ==========================
-        board.start_streaming(callback)
+    # Start board streaming loop.
+    # ==========================
+    # Start packet transmission.
+    # ==========================
+    board.start_streaming(callback)
 
 
 if __name__ == '__main__':

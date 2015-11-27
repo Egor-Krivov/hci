@@ -21,7 +21,7 @@ class SignalVisualizer(BasicVisualizer):
     def __init__(self, master, signal_interface: SignalInterface):
         self.signal_interface = signal_interface
         super().__init__(master, name='Signal Visualizer', interval=25,
-                         data_source=signal_interface)
+                         data_source=signal_interface, navigation_toolbar=True)
         self.x = np.linspace(0, signal_interface.window,
                              signal_interface.get_signal_len())
 
