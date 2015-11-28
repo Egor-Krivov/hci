@@ -9,17 +9,17 @@ from os.path import dirname, join, abspath
 
 from eegstream.devices.openbci.open_bci_v3 import OpenBCIBoard
 from eegstream.devices import OpenBCI8
-
-from eegstream.streaming.tools import make_packet_transmitter
+from eegstream.streaming.tools import _make_packet_transmitter
 
 
 def make_callback(packet_transmitters, save=False):
     """Callback wrapper.
 
     """
-    # ================ #
-    # Save log to file #
-    # ================ #
+    # =================
+    # Save log to file.
+    # =================
+
     def callback_save(sample):
         with open(callback_save.file, 'a') as file:
             file.write(_to_str(sample))
@@ -30,9 +30,10 @@ def make_callback(packet_transmitters, save=False):
     # Initialize attribute.
     callback_save.file = file
 
-    # ================= #
-    # Data transmission #
-    # ================= #
+    # ==================
+    # Data transmission.
+    # ==================
+
     callback_functions = [lambda sample: t.send(sample.channel_data)
                           for t in packet_transmitters]
 
@@ -57,38 +58,29 @@ def _to_str(sample):
     return ','.join(x for x in raw) + '\n'
 
 
-def setup_channel(board, chan, params):
-    """Setups channel setting commands.
-
-    """
-    board.ser.write(b'x')
-    time.sleep(0.1)
-    board.ser.write(bytes(chan, 'ascii'))
-    time.sleep(0.1)
-
-    for s in str(params):
-        board.ser.write(bytes(s, 'ascii'))
-        time.sleep(0.1)
-
-    board.ser.write(b'X')
-    time.sleep(0.1)
-
-
-def start_streaming(transmitters, save=False):
+def start_streaming(transmitters, port_id=0, save=False, calibrate_board=None):
     """Start streaming loop. Will use settings from settings file.
 
     Parameters
     ----------
-    save : boolean
+    save : bool
         If streaming should record data in additional logfile.
 
+    port_id : int
+        Id for ttyUSB.
+
     transmitters : iterable
-        Iterable with packet transmitters for connections.
+        Iterable with packet transmitters for connections. Transmitters
+        should be activated.
         If not given, then standard path from setting file is used.
+
+    calibrate_board : callable
+        Function for additional board calibration. Gets board as the only
+        argument.
 
     """
 
-    port = '/dev/ttyUSB0'  # dongle port
+    port = '/dev/ttyUSB' + str(port_id)  # dongle port
     baud = 115200  # serial port baud rate
 
     # =================
@@ -107,24 +99,8 @@ def start_streaming(transmitters, save=False):
     # Wait reasonable amount of time to establish stable connection.
     time.sleep(5)
 
-        # Channel setting commands.
-    #
-    # CHANNEL        : 1 2 3 4 5 6 7 8 Q W E R T Y U I
-    # POWER_DOWN     : 0\1 = ON\OFF (0 default)
-    # GAIN_SET       : 0 1 2 3 4 5 6 (6 default)
-    # INPUT_TYPE_SET : 0 (ADSINPUT_NORMAL default)
-    # BIAS_SET       : 0\1 = Remove\include from\in BIAS (1 default)
-    # SRB2_SET       : 0\1 = Dis\connect this input from\to SRB2 (1 default)
-    # SRB1_SET       : 0\1 = Dis\connect all inputs from\to SRB1 (0 default)
-
-    setup_channel(board, '1', '100000')
-    setup_channel(board, '2', '060000')  # ON
-    setup_channel(board, '3', '100000')
-    setup_channel(board, '4', '060000')  # ON
-    setup_channel(board, '5', '100000')
-    setup_channel(board, '6', '100000')
-    setup_channel(board, '7', '060000')  # ON
-    setup_channel(board, '8', '100000')
+    if calibrate_board:
+        calibrate_board(board)
 
     # Begin countdown timer.
     for t in reversed(range(1, 4)):
@@ -133,13 +109,14 @@ def start_streaming(transmitters, save=False):
 
     callback = make_callback(transmitters, save)
 
-    # Start board streaming loop.
     # ==========================
     # Start packet transmission.
     # ==========================
+
     board.start_streaming(callback)
 
 
 if __name__ == '__main__':
     save = len(sys.argv) > 1
-    start_streaming(transmitters=[make_packet_transmitter(OpenBCI8)], save=save)
+    start_streaming(transmitters=[_make_packet_transmitter(OpenBCI8)],
+                    save=save)

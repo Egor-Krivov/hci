@@ -35,7 +35,7 @@ class AlphaDetector:
 
         Returns
         -------
-        y : bool
+        y : float
 
         """
         x = x.astype(np.float64)

@@ -1,25 +1,28 @@
 import sys
 import time
 
-from eegstream.devices import OpenBCIWorker
-from eegstream.detectors import walle, alpha_detector
+from eegstream.devices import OpenBCI8
+from eegstream.detectors import alpha_detector
 from eegstream.streaming import Master
+from walle_driver import WALLE
 
-fs = 250  # sampling frequency
-port = '/dev/ttyUSB1'  # serial port
-baud = 9600  # serial port baud rate
 
-# Instantiate WALL-E robot.
-robot = walle.WALLE(port=port, baud=baud)
-print('Robot instantiated...', file=sys.stderr)
+def walle_start_working_bitch(packet_receiver, port_id=1):
 
-# Initialize parameters.
-window, step, freq_nqst, thr, thr_emg = 4*fs, fs//4, fs//2, 15, 10
+    port = '/dev/ttyUSB' + str(port_id)  # serial port
+    baud = 9600  # baud rate
 
-# Instantiate OpenBCI worker.
-worker = OpenBCIWorker()
+    # Instantiate WALL-E robot.
+    robot = WALLE(port=port, baud=baud)
+    print('Robot instantiated...', file=sys.stderr)
 
-with Master(worker, window, step=step) as master:
+    # Initialize parameters.
+    fs = OpenBCI8.freq
+    window, step, freq_nqst, thr, thr_emg = 4*fs, fs//4, fs//2, 15, 10
+
+    # Instantiate OpenBCI worker.
+
+    master =  Master(packet_receiver, window, step=step):
     # Instantiate AlphaDetector.
     alpha = alpha_detector.AlphaDetector(fs, thr, thr_emg, psd_mode=True,
                                          verbose=True)
