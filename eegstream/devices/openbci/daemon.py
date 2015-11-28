@@ -6,11 +6,11 @@ Script connects to openBCI board and starts raw packet transmission.
 import sys
 import time
 from os.path import dirname, join, abspath
-from contextlib import ExitStack
 
 from eegstream.devices.openbci.open_bci_v3 import OpenBCIBoard
 from eegstream.devices import OpenBCI8
-from eegstream.devices.tools import make_packet_transmitter
+
+from eegstream.streaming.tools import make_packet_transmitter
 
 
 def make_callback(packet_transmitters, save=False):

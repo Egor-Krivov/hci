@@ -1,12 +1,60 @@
 from collections import deque
 
 import numpy as np
-from scipy.signal import welch
 
 from eegstream.streaming import PacketReceiver
 
 
 class SignalInterface:
+    """Signal interface class for communication
+
+    Parameters
+    ----------
+    packet_receiver : PacketReceiver
+        Packet receiver, prepared for data transmission.
+    device : Device
+        Device for the data transmission.
+    window : float
+        Epoch length in seconds.
+    mask : iterable
+        Iterable with booleans, describing channels' mask. Use all channels
+        as default state.
+
+    """
+
+    def __init__(self, packet_receiver: PacketReceiver, device: Device,
+                 window: float, mask=None, step: int=0, block_mode: bool=True,
+                 verbose: bool=False):
+
+        self.packet_receiver = packet_receiver
+        self.device = device
+        self.epoch_len = int(device.freq * window)
+        assert self.epoch_len > 0
+        self.step = step
+        self._mask = [True] * device.channels if mask is None else mask
+        self._mask = np.array(self._mask, dtype=bool)
+        self.block_mode = block_mode
+        self.verbose = verbose
+        self.deque = deque(maxlen=self.epoch_len)
+
+    def _pop_deque(self):
+        """Remove from deque based buffer out of data samples."""
+        for _ in range(self.step):
+            self.deque.popleft()
+
+    def __iter__(self):
+        while True:
+            yield self.get_epoch()
+
+    @property
+    def mask(self):
+        return self._mask
+
+    @mask.setter
+    def mask(self, mask):
+        mask = np.array(mask, dtype=bool)
+        assert len(mask) == self.device.channels and mask.ndim == 1
+        self._mask = mask
     """Class, providing interface for signal visualization.
     Packet receiver should be activated."""
     def __init__(self, packet_receiver: PacketReceiver, channels: int,

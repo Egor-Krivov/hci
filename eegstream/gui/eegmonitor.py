@@ -1,6 +1,7 @@
 from tkinter import *
+
 from eegstream.gui.widgets import ControlPanel, SignalVisualizer, Spectrogram
-from eegstream.gui.signal import SignalInterface
+from eegstream.streaming.signal import SignalInterface
 
 
 class EEGMonitor:

@@ -1,7 +1,12 @@
+import sys
 import time
-import collections
+from collections import deque
 
 import numpy as np
+
+from eegstream.streaming import PacketReceiver
+from eegstream.devices import Device
+
 
 SLEEP_TIMEOUT = 0.001
 
@@ -11,41 +16,46 @@ class Master:
 
     Parameters
     ----------
-    worker : instance of Worker
-        Each acquisition device should provide specific Worker class to
-        communicate with underlying data link and corresponding device daemon.
-    epoch_len : int
-        Number of samples to handle as complete epoch for classifier.
+    packet_receiver : PacketReceiver
+        Packet receiver, prepared for data transmission.
+    device : Device
+        Device for the data transmission.
+    window : float
+        Epoch length in seconds.
+    mask : iterable
+        Iterable with booleans, describing channels' mask. Use all channels
+        as default state.
     step : int, optional
-        Number of samples to update epoch and classifier prediction.
-    mask : str | None, optional
-        Indices of channels to include (if None, all channels are used).
-    to_file : bool, optional
-        Write acquired data to a file.
+        Minimum number of samples to update epoch.
+    block_mode : bool
+        If methods can block to get required amount of data. If false,
+        can return None instead of data.
+    verbose : bool, optional
+        Verbosity level.
+
 
     """
 
-    def __init__(self, worker, epoch_len, step=1, mask=None, to_file=False):
-        self.worker = worker
-        self.epoch_len = epoch_len
-        self.step = step
-        self.mask = mask
-        self.to_file = to_file
+    def __init__(self, packet_receiver: PacketReceiver, device: Device,
+                 window: float, mask=None, step: int=0, block_mode: bool=True,
+                 verbose: bool=False):
 
+        self.packet_receiver = packet_receiver
+        self.device = device
+        self.epoch_len = int(device.freq * window)
+        assert self.epoch_len > 0
+        self.step = step
+        self.mask = [True] * device.channels if mask is None else mask
+        self.mask = np.array(self.mask, dtype=bool)
+        self.block_mode = block_mode
+        self.verbose = verbose
         # Create empty deque based buffer for real-time acquired data. The
         # deque is bounded to the specified maximum length. Once a bounded
         # length deque is full, when new items are added, a corresponding
         # number of items are discarded from the opposite end. Deque based
         # buffer only designed to retain `epoch_len` up to date samples, all
         # other samples are discarded.
-        self.deque = collections.deque(maxlen=self.epoch_len)
-
-    def __enter__(self):
-        self.worker.__enter__()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        return self.worker.__exit__(exc_type, exc_val, exc_tb)
+        self.deque = deque(maxlen=self.epoch_len)
 
     def get_epoch(self):
         """Get actual samples as epoch.
@@ -54,23 +64,27 @@ class Master:
         -------
         epoch : 2d array (n_chans, epoch_len)
             Actual samples to handle as a complete epoch, acquired from the
-            device.
+            device. Can block if block mode set to true to get enough amount
+            of data. If block_mode set to False, can return None if not enough
+            data was acquired yet.
 
         """
         while True:
-            # Read all samples from data link.
-            sample_list = self.worker.receive_all()
+            sample_list = self.packet_receiver.receive_all()
             # Add acquired samples to deque. Deque based buffer retains only
             # the last `epoch_len` samples from provided sample list. All
             # other samples are discarded, because they are out of date.
-            self._extend_deque(sample_list)
+            self.deque.extend(sample_list)
 
             if len(self.deque) < self.epoch_len:
-                # There is not enough samples to handle as complete epoch.
-                time.sleep(SLEEP_TIMEOUT)
-                continue
+                if self.block_mode:
+                    # There is not enough samples to handle as complete epoch.
+                    time.sleep(SLEEP_TIMEOUT)
+                    continue
+                else:
+                    return None
             else:
-                # We have enough samples
+                # We have enough samples.
                 epoch = np.array(self.deque).T
                 # Pop out of date samples from deque.
                 self._pop_deque()
@@ -89,18 +103,19 @@ class Master:
                     # to overcome potential deque overflow, algorithm will use
                     # only up to date samples, discarding all previously
                     # acquired samples. This approach can reduce classification
-                    # latency, but instead produces time gaps between acquired
+                    # lag, but instead produces time gaps between acquired
                     # samples. Only epochs acquired directly after pipeline
                     # routine will be used for prediction.
-                    print('Slow pipeline...')
+                    if self.verbose:
+                        print('Slow pipeline...', file=sys.stderr)
 
-                return epoch
-
-    def _extend_deque(self, sample_list):
-        """Extend deque based buffer with up to date samples."""
-        self.deque.extend(sample_list)
+                return epoch[self.mask]
 
     def _pop_deque(self):
         """Remove from deque based buffer out of data samples."""
-        for _i in range(self.step):
+        for _ in range(self.step):
             self.deque.popleft()
+
+    def __iter__(self):
+        while True:
+            yield self.get_epoch()

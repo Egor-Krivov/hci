@@ -1,6 +1,6 @@
 from tkinter import *
 
-from eegstream.gui.signal import SignalInterface
+from eegstream.streaming.signal import SignalInterface
 
 class ControlPanel(Frame):
     def __init__(self, master, signal_interface: SignalInterface, **args):

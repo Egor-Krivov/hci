@@ -158,7 +158,6 @@ class FifoReceiver(DatalinkReceiver):
     def __exit__(self, exc_type, exc_val, exc_tb):
         # Close the FIFO file.
         os.close(self.fifo_fd)
-        #os.unlink(self.file)
         try:
             # Delete the FIFO file.
             os.unlink(self.file)

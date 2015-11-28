@@ -1,9 +1,7 @@
-import os.path as pa
 import sys
 import time
 
 import atexit
-import numpy as np
 import serial
 
 

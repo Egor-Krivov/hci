@@ -1,11 +1,7 @@
 from tkinter import *
 
-from scipy.signal import welch
-
 from .basic_visualizer import BasicVisualizer
-from eegstream.gui.signal import SignalInterface
-
-import numpy as np
+from eegstream.streaming.signal import SignalInterface
 
 
 class Spectrogram(BasicVisualizer):

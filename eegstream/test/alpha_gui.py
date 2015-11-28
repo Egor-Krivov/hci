@@ -1,13 +1,11 @@
 from multiprocessing import Process
 from time import sleep
 
-import numpy as np
-
-from eegstream.gui.eegmonitor import EEGMonitor
-from eegstream.gui.signal import SignalInterface
-from eegstream.streaming import PacketReceiver, PacketTransmitter
-from eegstream.devices.openbci.daemon import start_streaming
 import eegstream.devices as devices
+from eegstream.gui.eegmonitor import EEGMonitor
+from eegstream.streaming.signal import SignalInterface
+from eegstream.streaming import PacketReceiver
+from eegstream.devices.openbci.daemon import start_streaming
 
 
 def start_gui(packet_receiver: PacketReceiver):
@@ -18,7 +16,7 @@ def start_gui(packet_receiver: PacketReceiver):
 
 if __name__ == '__main__':
     packet_transmitter, packet_receiver = \
-        devices.tools.make_packet_connection(
+        eegstream.connections.devices.tools.make_packet_connection(
             device=devices.OpenBCI8, filename='eegstream_openbci8_gui.fifo')
 
     with packet_receiver, packet_transmitter:

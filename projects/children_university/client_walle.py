@@ -1,11 +1,9 @@
 import sys
 import time
 
-from eegstream.alpha_detector import alpha_detector
 from eegstream.devices import OpenBCIWorker
-from eegstream.projects import walle
+from eegstream.detectors import walle, alpha_detector
 from eegstream.streaming import Master
-
 
 fs = 250  # sampling frequency
 port = '/dev/ttyUSB1'  # serial port

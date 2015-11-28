@@ -3,7 +3,7 @@ from tkinter import *
 import numpy as np
 
 from eegstream.gui.widgets.basic_visualizer import BasicVisualizer
-from eegstream.gui.signal import SignalInterface
+from eegstream.streaming.signal import SignalInterface
 
 
 class SignalVisualizer(BasicVisualizer):

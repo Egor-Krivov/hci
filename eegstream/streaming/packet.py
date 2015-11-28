@@ -1,10 +1,13 @@
 import struct
 from abc import abstractmethod, ABCMeta
+from copy import deepcopy
 
 from .datalink import FifoTransmitter, FifoReceiver
 from .datalink.datalink import DatalinkBase
 
+
 MAX_BUFFER = 4096
+
 
 class PacketBase(metaclass=ABCMeta):
     """Abstract base class for packet.
@@ -14,6 +17,7 @@ class PacketBase(metaclass=ABCMeta):
         # Pop packet settings from global settings dictionary. Due to the
         # hierarchical structure, lower level do not require information from
         # higher level settings.
+        settings = deepcopy(settings)
         self.settings = settings.pop('packet', None)
         self.deeper_settings = settings
 
