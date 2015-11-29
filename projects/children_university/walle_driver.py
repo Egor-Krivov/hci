@@ -2,6 +2,7 @@ import sys
 import time
 
 import atexit
+import random
 import serial
 
 
@@ -49,6 +50,14 @@ class WALLE:
         self.ser.write(b'd')
         self._sleep()
 
+    def open(self):
+        self.ser.write(b'q')
+        self._sleep()
+
+    def close(self):
+        self.ser.write(b'e')
+        self._sleep()
+
     @staticmethod
     def _sleep(delay=0.01):
         time.sleep(delay)
@@ -69,10 +78,10 @@ if __name__ == '__main__':
     walle = WALLE(port=port, baud=baud)
     print('Robot instantiated...', file=sys.stderr)
 
+    func_list = [walle.stop, walle.left, walle.right]
+
     while True:
-        walle.right()
+        func = random.choice(func_list)
+        func()
+        print('func={}'.format(func.__name__))
         time.sleep(3)
-        walle.stop()
-        walle.left()
-        time.sleep(3)
-        walle.stop()
