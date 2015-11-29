@@ -36,7 +36,7 @@ def calibrate_board(board):
     setup_channel(board, '1', '100000')
     setup_channel(board, '2', '060000')  # ON
     setup_channel(board, '3', '100000')
-    setup_channel(board, '4', '060000')  # ON
+    setup_channel(board, '4', '160000')  # ON
     setup_channel(board, '5', '100000')
     setup_channel(board, '6', '100000')
     setup_channel(board, '7', '060000')  # ON
@@ -50,4 +50,6 @@ def start_walle_streaming(transmitters, port_id):
 if __name__ == '__main__':
     port_id = 0
     packet_transmitter = _make_packet_transmitter(OpenBCI8)
-    start_walle_streaming([packet_transmitter], port_id)
+
+    with packet_transmitter:
+        start_walle_streaming([packet_transmitter], port_id)

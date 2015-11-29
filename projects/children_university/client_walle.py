@@ -19,7 +19,7 @@ def start_walle(packet_receiver, device, port_id=1):
 
     # Initialize parameters.
     fs = device.freq
-    window, step, freq_nqst, thr_emg = 4, fs//4, fs//2, 15
+    window, step, freq_nqst, thr_emg = 2, fs//10, fs//2, 10
     # Instantiate AlphaDetector.
     alpha = AlphaDetector(fs, thr_emg, psd_mode=True)
     # Instantiate Master.
@@ -41,11 +41,11 @@ def start_walle(packet_receiver, device, port_id=1):
 
 def control_robot(robot, y_m, y_l, y_r):
 
-    if y_m:
+    if y_m > 20:
         robot.move()
-    elif y_l:
+    elif y_l > 20:
         robot.left()
-    elif y_r:
+    elif y_r > 20:
         robot.right()
     else:
         robot.stop()
