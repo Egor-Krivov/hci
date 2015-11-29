@@ -112,11 +112,13 @@ def start_streaming(transmitters, port_id=0, save=False, calibrate_board=None):
     # ==========================
     # Start packet transmission.
     # ==========================
-
+    print(transmitters[0].datalink)
     board.start_streaming(callback)
 
 
 if __name__ == '__main__':
     save = len(sys.argv) > 1
-    start_streaming(transmitters=[_make_packet_transmitter(OpenBCI8)],
-                    save=save)
+    packet_transmitter = _make_packet_transmitter(OpenBCI8)
+    with packet_transmitter:
+        start_streaming(transmitters=[packet_transmitter],
+                        save=save)

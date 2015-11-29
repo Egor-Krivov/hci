@@ -57,7 +57,7 @@ class Master:
         # other samples are discarded.
         self.deque = deque(maxlen=self.epoch_len)
 
-    def get_epoch(self):
+    def get_epoch(self) -> np.array:
         """Get actual samples as epoch.
 
         Returns

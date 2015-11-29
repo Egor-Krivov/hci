@@ -37,11 +37,13 @@ class PacketBase(metaclass=ABCMeta):
         return DatalinkBase
 
     def __enter__(self):
+        print(self.__class__, 'enter routine')
         self.datalink = self.datalink_class(self.deeper_settings)
         self.datalink.__enter__()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        print(self.__class__, 'exit routine')
         return self.datalink.__exit__(exc_type, exc_val, exc_tb)
 
 
