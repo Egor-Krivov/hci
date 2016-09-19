@@ -5,14 +5,15 @@ Script connects to openBCI board and starts raw packet transmission.
 """
 import sys
 import time
-from os.path import dirname, join, abspath
 
+from eegstream.devices import make_stream_info
 from eegstream.devices.openbci.open_bci_v3 import OpenBCIBoard
-from eegstream.devices import OpenBCI8
-from eegstream.streaming.tools import _make_packet_transmitter
+from eegstream.devices.openbci import OpenBCI8
+
+from pylsl import StreamInfo, StreamOutlet
 
 
-def make_callback(packet_transmitters, save=False):
+def make_callback(outlet: StreamOutlet, *, save_path: str=None):
     """Callback wrapper.
 
     """
@@ -21,29 +22,25 @@ def make_callback(packet_transmitters, save=False):
     # =================
 
     def callback_save(sample):
-        with open(callback_save.file, 'a') as file:
-            file.write(_to_str(sample))
-
-    # Generate file name for data stream.
-    cdir = join(dirname(abspath(__file__)), '../../data/')
-    file = join(cdir, 'eoec-' + time.strftime('%y-%m-%d-%H-%M-%S') + '.csv')
-    # Initialize attribute.
-    callback_save.file = file
+        with open(save_path, 'a') as file:
+            file.write(sample_to_str(sample))
 
     # ==================
     # Data transmission.
     # ==================
 
-    callback_functions = [lambda sample: t.send(sample.channel_data)
-                          for t in packet_transmitters]
+    def push(x):
+        outlet.push_sample(x.channel_data)
 
-    if save:
+    callback_functions = [push]
+
+    if save_path:
         callback_functions.append(callback_save)
 
     return callback_functions
 
 
-def _to_str(sample):
+def sample_to_str(sample):
     sid = sample.id
     eeg = sample.channel_data
     aux = sample.aux_data
@@ -58,26 +55,24 @@ def _to_str(sample):
     return ','.join(x for x in raw) + '\n'
 
 
-def start_streaming(transmitters, port_id=0, save=False, calibrate_board=None):
+def start_streaming(outlet: StreamOutlet, port_id: int=0, save_path: str=None,
+                    calibrate_board=None):
     """Start streaming loop. Will use settings from settings file.
 
     Parameters
     ----------
-    save : bool
-        If streaming should record data in additional logfile.
+    outlet :
+        Iterable with outlet for connection.
 
-    port_id : int
+    port_id :
         Id for ttyUSB.
 
-    transmitters : iterable
-        Iterable with packet transmitters for connections. Transmitters
-        should be activated.
-        If not given, then standard path from setting file is used.
+    save_path :
+        If streaming should record data in additional logfile.
 
-    calibrate_board : callable
+    calibrate_board :
         Function for additional board calibration. Gets board as the only
         argument.
-
     """
 
     port = '/dev/ttyUSB' + str(port_id)  # dongle port
@@ -97,8 +92,9 @@ def start_streaming(transmitters, port_id=0, save=False, calibrate_board=None):
     # board program should send it a `v`.
     board.ser.write(b'v')
     # Wait reasonable amount of time to establish stable connection.
-    time.sleep(5)
+    #time.sleep(2)
 
+    # Why is that?
     if calibrate_board:
         calibrate_board(board)
 
@@ -107,18 +103,14 @@ def start_streaming(transmitters, port_id=0, save=False, calibrate_board=None):
         print('{}...'.format(t), file=sys.stderr)
         time.sleep(1)
 
-    callback = make_callback(transmitters, save)
-
     # ==========================
     # Start packet transmission.
     # ==========================
-    print(transmitters[0].datalink)
+    callback = make_callback(outlet, save_path=save_path)
     board.start_streaming(callback)
 
 
 if __name__ == '__main__':
-    save = len(sys.argv) > 1
-    packet_transmitter = _make_packet_transmitter(OpenBCI8)
-    with packet_transmitter:
-        start_streaming(transmitters=[packet_transmitter],
-                        save=save)
+    stream_info = make_stream_info(OpenBCI8)
+    stream_outlet = StreamOutlet(stream_info)
+    start_streaming(stream_outlet)

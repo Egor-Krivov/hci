@@ -1,1 +1,1 @@
-from eegstream.gui.eegmonitor import EEGMonitor
+from eegstream.gui.monitor import Monitor

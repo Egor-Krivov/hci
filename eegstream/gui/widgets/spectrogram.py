@@ -1,10 +1,12 @@
-from tkinter import *
+import tkinter as tk
+import numpy as np
 
-from .basic_visualizer import BasicVisualizer
-from eegstream.streaming.signal import SignalInterface
+from scipy.signal import welch
 
+from eegstream.streaming.signal import SignalInterface, MaskController
+from eegstream.gui.widgets import SignalVisualizer
 
-class Spectrogram(BasicVisualizer):
+class Spectrogram(SignalVisualizer):
     """Widget for signal visualization.
 
     Parameters
@@ -13,53 +15,59 @@ class Spectrogram(BasicVisualizer):
         Container for widget.
 
     """
-    def __init__(self, master, signal_interface: SignalInterface):
+
+    def __init__(self, master: tk.Frame, signal_interface: SignalInterface,
+                 mask_controller: MaskController):
         self.signal_interface = signal_interface
-        self.xlim = (1, 35)
-        super().__init__(master, name='Spectrogram', interval=100,
-                         data_source=signal_interface.spectrogram,
+        self.n_chans = signal_interface.n_chans
+        self.mask_controller = mask_controller
+        super().__init__(master, signal_interface, mask_controller,
+                         name='Spec', interval=75,
                          navigation_toolbar=True)
-        self.text = StringVar(value='Val')
-        Label(self, textvariable=self.text).pack(side=BOTTOM)
+        self.x = np.linspace(0, signal_interface.window,
+                             signal_interface.epoch_len)
 
-    def init_figure(self):
-        """Function to clear figure and create empty plot."""
-        # It is important, because with blit=True this function is called
-        # twice.
-        self.figure.clear()
-        self.ax = self.figure.add_subplot(111)
-        self.set_default_axes()
-        self.line, = self.ax.plot([], [], lw=2)
-        self.line.set_data([], [])
-        return self.line,
+        self.default_xlim = (0, 250)
+        self.default_ylim = (0, 10)
 
-    def set_default_axes(self):
-        self.y_max = 0.001
-        self.ax.set_xlim(self.xlim)
-        self.ax.set_ylim((0, self.y_max))
-
-    def animate_figure(self, data):
+    def animate_figure(self, y):
         """Function for animation process, called on each frame."""
-        if self.signal_interface.change_mask_flag:
-            self.init_figure()
-            self.set_default_axes()
-            self.figure.canvas.draw()
-            self.signal_interface.mask_changed()
-        if data:
-            x, y = data
-            y = y[0]
-            if self.y_max < y.max():
-                self.y_max = y.max()
-                self.ax.set_ylim((0, self.y_max))
-                self.figure.canvas.draw()
-            self.line.set_data(x, y)
-            self.text.set(str(y.mean()))
-        return self.line,
+        if y is not None and len(y) == self.signal_interface.epoch_len:
+            mask = self.mask_controller.mask
 
+            nperseg = 256
+
+            self.x, self.y = welch(y.T, self.signal_interface.sfreq, 'flattop', nperseg,
+                         scaling='spectrum')
+
+            self.y = self.y.T#np.log(self.y.T)
+
+            for i, line in enumerate(self.lines):
+                if mask[i]:
+                    line.set_linewidth(1)
+                else:
+                    line.set_linewidth(0)
+
+                line.set_data(self.x, self.y[:, i])
+            self.auto_ylim(force=True)
+        return self.lines
 
 
 if __name__ == '__main__':
-    root = Tk()
-    widget = Spectrogram(root, data_source=iter(range(10000)))
-    widget.pack(expand=TRUE, fill=BOTH)
+    from pylsl import resolve_byprop, StreamInlet
+    from eegstream.devices import Dummy
+
+    source_id = Dummy.source_id
+    window = 1.0
+
+    print("looking for a stream...")
+    stream_info = resolve_byprop('source_id', source_id, timeout=1)[0]
+    print(stream_info)
+    mask_controller = MaskController(Dummy.n_chans)
+    stream_inlet = StreamInlet(stream_info)
+    signal_interface = SignalInterface(stream_inlet, window)
+
+    root = tk.Tk()
+    widget = Spectrogram(root, signal_interface, mask_controller)
+    widget.pack(expand=True, fill=tk.BOTH)
     root.mainloop()
