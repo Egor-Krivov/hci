@@ -40,7 +40,15 @@ class Spectrogram(SignalVisualizer):
             self.x, self.y = welch(y.T, self.signal_interface.sfreq, 'flattop', nperseg,
                          scaling='spectrum')
 
+            beginning = (self.x < 5)
+            fifty = (self.x > 45) & (self.x < 55)
+            hundred = (self.x > 95) & (self.x < 105)
+            zero = fifty | hundred | beginning
+
             self.y = self.y.T#np.log(self.y.T)
+
+            self.x = self.x[-zero]
+            self.y = self.y[-zero]
 
             for i, line in enumerate(self.lines):
                 if mask[i]:

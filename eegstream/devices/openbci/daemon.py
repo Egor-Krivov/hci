@@ -94,7 +94,6 @@ def start_streaming(outlet: StreamOutlet, port_id: int=0, save_path: str=None,
     # Wait reasonable amount of time to establish stable connection.
     #time.sleep(2)
 
-    # Why is that?
     if calibrate_board:
         calibrate_board(board)
 

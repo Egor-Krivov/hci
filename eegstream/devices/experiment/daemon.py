@@ -1,7 +1,7 @@
 import tkinter as tk
 from collections import namedtuple
 
-from pylsl import StreamInfo, StreamOutlet
+from pylsl import StreamOutlet
 
 Action = namedtuple('Action', ['id', 'length'])
 Paradigm = namedtuple('Paradigm', ['actions', 'id2description'])
@@ -22,9 +22,11 @@ class ExperimentRecorder:
         self.schedule = tk.Label(self.root, textvariable=self.scheduleVar)
         self.schedule.pack(side=tk.TOP)
 
-    def __init__(self, paradigm: Paradigm, stream_outlet: *, time_quant):
+    def __init__(self, paradigm: Paradigm, stream_outlet: StreamOutlet, *,
+                 time_quant):
         self.actions = paradigm.actions
         self.id2description = paradigm.id2description
+        self.stream_outlet = stream_outlet
         self.time_quant = time_quant
 
         self.gui_init()
@@ -48,7 +50,9 @@ class ExperimentRecorder:
             if self.current_action + 1 < len(self.actions):
                 self.next_action(self.current_action + 1)
                 self.set_timer()
+                self.stream_outlet.push_sample([self.current_action_id])
             else:
+                self.stream_outlet.push_sample([-1])
                 self.update_over()
         else:
             self.set_timer()
@@ -63,11 +67,11 @@ class ExperimentRecorder:
             description = '{} : {}'.format(self.id2description[action_id],
                                            length)
             new_schedule.append(description)
-        self.scheduleVar.set('\n'.join(new_schedule))
+        self.scheduleVar.set('\n'.join(new_schedule[:10]))
 
 
     def update_action_field(self):
-        text = '{}\n{:<.2}'.format(self.id2description[self.current_action_id],
+        text = '{}\n{:<.2f}'.format(self.id2description[self.current_action_id],
                                    self.timer)
         self.currentActionVar.set(text)
 
@@ -77,10 +81,15 @@ class ExperimentRecorder:
 
 
 if __name__ == '__main__':
-    paradigm = Paradigm(actions=[(1, 2.0), (0, 3.0), (2, 2.0)],
+    from eegstream.devices import make_stream_info, Experiment
+    paradigm = Paradigm(actions=[(0, 5.0), (1, 2.0), (0, 3.0), (2, 2.0)],
                         id2description={0: 'Stay idle',
                                         1: 'Dance',
                                         2: 'Sing'})
 
-    experiment_recorder = ExperimentRecorder(paradigm, time_quant=100)
+    stream_info = make_stream_info(Experiment)
+    stream_outlet = StreamOutlet(stream_info)
+
+    experiment_recorder = ExperimentRecorder(paradigm, stream_outlet,
+                                             time_quant=100)
     experiment_recorder.start_mainloop()

@@ -2,6 +2,8 @@ import tkinter as tk
 
 from eegstream.gui.widgets import MaskControllerAPI, SignalVisualizer,\
     Spectrogram
+
+from eegstream.gui.widgets.analysis import Analyser
 from eegstream.streaming.signal import SignalInterface, MaskController
 
 
@@ -18,18 +20,23 @@ class Monitor:
         self.signal_visualizer = SignalVisualizer(self.root,
                                                   signal_interface,
                                                   self.mask_controller)
+
         self.spectrogram = Spectrogram(self.root, signal_interface,
                                        self.mask_controller)
 
-
+        self.analysis = Analyser(self.root, signal_interface,
+                                       self.mask_controller)
         self.spectrogram.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
-        self.signal_visualizer.pack(side=tk.BOTTOM, expand=tk.YES, fill=tk.BOTH)
+        self.analysis.pack(side=tk.BOTTOM, expand=tk.YES, fill=tk.BOTH)
+        self.signal_visualizer.pack(side=tk.LEFT, expand=tk.YES, fill=tk.BOTH)
 
         self.right_frame = tk.Frame(self.root)
         self.right_frame.pack(side=tk.RIGHT, expand=tk.TRUE, fill=tk.BOTH)
         self.control_panel = MaskControllerAPI(self.right_frame,
                                           self.mask_controller)
         self.control_panel.pack(side=tk.TOP, expand=tk.FALSE, fill=tk.X)
+
+
 
     def start_mainloop(self):
         self.root.mainloop()
